@@ -375,42 +375,34 @@ with col_left:
     constraint_inputs = []
     for i in range(st.session_state.n_constraints):
         da, db, ds, dc = defaults[i] if i < len(defaults) else (1.0, 1.0, '<=', 0.0)
-        # Строка ввода ограничения: a *x  +  b *y  [≤/≥/=]  c
-        row_html_open = "<div style='display:flex;align-items:center;gap:4px;margin-bottom:8px;background:#f7fafd;border:1.5px solid #dce6f0;border-radius:9px;padding:8px 10px;'>"
-        st.markdown(row_html_open, unsafe_allow_html=True)
-
-        ca, lbl1, cb, lbl2, cs, lbl3, cc, lbl4 = st.columns([2.2, 0.6, 2.2, 0.5, 1.2, 0.3, 2.2, 0.1])
-        with ca:
-            a = st.text_input(f"a{i}", value=str(da),
-                               label_visibility="collapsed", key=f"a_{i}")
-        with lbl1:
-            st.markdown("<p style='margin:0;padding-top:6px;font-size:1rem;font-weight:600;color:#2c3e50;text-align:center'>·x</p>", unsafe_allow_html=True)
-        with cb:
-            b = st.text_input(f"b{i}", value=str(db),
-                               label_visibility="collapsed", key=f"b_{i}")
-        with lbl2:
-            st.markdown("<p style='margin:0;padding-top:6px;font-size:1rem;font-weight:600;color:#2c3e50;text-align:center'>·y</p>", unsafe_allow_html=True)
-        with cs:
-            sign_map = {
-                'kichik (<=)': '<=',
-                'katta  (>=)': '>=',
-                'teng    (=)': '='
-            }
-            sign_rev = {v: k for k, v in sign_map.items()}
-            sign_options = list(sign_map.keys())
-            def_idx = sign_options.index(sign_rev[ds])
-            chosen = st.selectbox(f"sign_{i}", sign_options,
-                                  index=def_idx,
-                                  label_visibility="collapsed",
-                                  key=f"s_{i}")
-            sign = sign_map[chosen]
-        with lbl3:
-            st.markdown("<p style='margin:0'></p>", unsafe_allow_html=True)
-        with cc:
-            c = st.text_input(f"c{i}", value=str(dc),
-                               label_visibility="collapsed", key=f"c_{i}")
-        with lbl4:
-            st.markdown("<p style='margin:0'></p>", unsafe_allow_html=True)
+        # Layout: [a] * x + [b] * y - [sign] - [c] - [X]
+        cols = st.columns([3, 1, 3, 1, 2, 3, 1])
+        with cols[0]:
+            a = st.text_input("a", value=str(da),
+                              label_visibility="collapsed", key=f"a_{i}")
+        with cols[1]:
+            st.markdown("<div style='padding-top:8px;font-weight:700;font-size:0.95rem;color:#2c3e50'>* x +</div>",
+                        unsafe_allow_html=True)
+        with cols[2]:
+            b = st.text_input("b", value=str(db),
+                              label_visibility="collapsed", key=f"b_{i}")
+        with cols[3]:
+            st.markdown("<div style='padding-top:8px;font-weight:700;font-size:0.95rem;color:#2c3e50'>* y</div>",
+                        unsafe_allow_html=True)
+        with cols[4]:
+            sign = st.selectbox("sign",
+                                options=["<=", ">=", "="],
+                                index=["<=", ">=", "="].index(ds),
+                                label_visibility="collapsed",
+                                key=f"s_{i}")
+        with cols[5]:
+            c = st.text_input("c", value=str(dc),
+                              label_visibility="collapsed", key=f"c_{i}")
+        with cols[6]:
+            st.markdown("<div style='padding-top:4px'>", unsafe_allow_html=True)
+            if st.button("−", key=f"del_{i}"):
+                st.session_state.n_constraints = max(1, st.session_state.n_constraints - 1)
+                st.rerun()
         constraint_inputs.append((a, b, sign, c))
 
     st.caption("Коэффициенты вводите целыми или дробными (запятая/точка).")
