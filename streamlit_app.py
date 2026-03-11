@@ -375,32 +375,37 @@ with col_left:
     constraint_inputs = []
     for i in range(st.session_state.n_constraints):
         da, db, ds, dc = defaults[i] if i < len(defaults) else (1.0, 1.0, '<=', 0.0)
-        cols = st.columns([2, 0.5, 2, 0.5, 1, 2])
-        with cols[0]:
+        # Строка ввода ограничения: a *x  +  b *y  [≤/≥/=]  c
+        row_html_open = "<div style='display:flex;align-items:center;gap:4px;margin-bottom:8px;background:#f7fafd;border:1.5px solid #dce6f0;border-radius:9px;padding:8px 10px;'>"
+        st.markdown(row_html_open, unsafe_allow_html=True)
+
+        ca, lbl1, cb, lbl2, cs, lbl3, cc, lbl4 = st.columns([2.2, 0.6, 2.2, 0.5, 1.2, 0.3, 2.2, 0.1])
+        with ca:
             a = st.text_input(f"a{i}", value=str(da),
-                               label_visibility="collapsed", key=f"a_{i}",
-                               placeholder="a")
-        with cols[1]:
-            st.markdown("<div style='padding-top:8px;font-size:0.9rem;color:#555'>*x +</div>", unsafe_allow_html=True)
-        with cols[2]:
+                               label_visibility="collapsed", key=f"a_{i}")
+        with lbl1:
+            st.markdown("<p style='margin:0;padding-top:6px;font-size:1rem;font-weight:600;color:#2c3e50;text-align:center'>·x</p>", unsafe_allow_html=True)
+        with cb:
             b = st.text_input(f"b{i}", value=str(db),
-                               label_visibility="collapsed", key=f"b_{i}",
-                               placeholder="b")
-        with cols[3]:
-            st.markdown("<div style='padding-top:8px;font-size:0.9rem;color:#555'>*y</div>", unsafe_allow_html=True)
-        with cols[4]:
-            sign_labels = ['≤', '≥', '=']
-            sign_values = ['<=', '>=', '=']
-            default_idx = sign_values.index(ds)
-            sign_label  = st.selectbox(f"s{i}", sign_labels,
-                                       index=default_idx,
-                                       label_visibility="collapsed",
-                                       key=f"s_{i}")
-            sign = sign_values[sign_labels.index(sign_label)]
-        with cols[5]:
+                               label_visibility="collapsed", key=f"b_{i}")
+        with lbl2:
+            st.markdown("<p style='margin:0;padding-top:6px;font-size:1rem;font-weight:600;color:#2c3e50;text-align:center'>·y</p>", unsafe_allow_html=True)
+        with cs:
+            sign_options = ['≤', '≥', '=']
+            sign_values  = ['<=',   '>=',  '=']
+            def_idx = sign_values.index(ds)
+            chosen = st.selectbox(f"sign_{i}", sign_options,
+                                  index=def_idx,
+                                  label_visibility="collapsed",
+                                  key=f"s_{i}")
+            sign = sign_values[sign_options.index(chosen)]
+        with lbl3:
+            st.markdown("<p style='margin:0'></p>", unsafe_allow_html=True)
+        with cc:
             c = st.text_input(f"c{i}", value=str(dc),
-                               label_visibility="collapsed", key=f"c_{i}",
-                               placeholder="c")
+                               label_visibility="collapsed", key=f"c_{i}")
+        with lbl4:
+            st.markdown("<p style='margin:0'></p>", unsafe_allow_html=True)
         constraint_inputs.append((a, b, sign, c))
 
     st.caption("Коэффициенты вводите целыми или дробными (запятая/точка).")
