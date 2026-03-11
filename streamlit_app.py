@@ -375,15 +375,21 @@ with col_left:
     constraint_inputs = []
     for i in range(st.session_state.n_constraints):
         da, db, ds, dc = defaults[i] if i < len(defaults) else (1.0, 1.0, '<=', 0.0)
-        ca, cb, cs, cc = st.columns([2, 2, 1.5, 2])
-        with ca:
+        cols = st.columns([2, 0.5, 2, 0.5, 1, 2])
+        with cols[0]:
             a = st.text_input(f"a{i}", value=str(da),
-                               label_visibility="collapsed", key=f"a_{i}")
-        with cb:
+                               label_visibility="collapsed", key=f"a_{i}",
+                               placeholder="a")
+        with cols[1]:
+            st.markdown("<div style='padding-top:8px;font-size:0.9rem;color:#555'>*x +</div>", unsafe_allow_html=True)
+        with cols[2]:
             b = st.text_input(f"b{i}", value=str(db),
-                               label_visibility="collapsed", key=f"b_{i}")
-        with cs:
-            sign_labels = ['≤  kichik', '≥  katta', '=  teng']
+                               label_visibility="collapsed", key=f"b_{i}",
+                               placeholder="b")
+        with cols[3]:
+            st.markdown("<div style='padding-top:8px;font-size:0.9rem;color:#555'>*y</div>", unsafe_allow_html=True)
+        with cols[4]:
+            sign_labels = ['≤', '≥', '=']
             sign_values = ['<=', '>=', '=']
             default_idx = sign_values.index(ds)
             sign_label  = st.selectbox(f"s{i}", sign_labels,
@@ -391,9 +397,10 @@ with col_left:
                                        label_visibility="collapsed",
                                        key=f"s_{i}")
             sign = sign_values[sign_labels.index(sign_label)]
-        with cc:
+        with cols[5]:
             c = st.text_input(f"c{i}", value=str(dc),
-                               label_visibility="collapsed", key=f"c_{i}")
+                               label_visibility="collapsed", key=f"c_{i}",
+                               placeholder="c")
         constraint_inputs.append((a, b, sign, c))
 
     st.caption("Коэффициенты вводите целыми или дробными (запятая/точка).")
