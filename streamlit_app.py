@@ -391,14 +391,19 @@ with col_left:
         with lbl2:
             st.markdown("<p style='margin:0;padding-top:6px;font-size:1rem;font-weight:600;color:#2c3e50;text-align:center'>·y</p>", unsafe_allow_html=True)
         with cs:
-            sign_options = ['≤', '≥', '=']
-            sign_values  = ['<=',   '>=',  '=']
-            def_idx = sign_values.index(ds)
+            sign_map = {
+                'kichik (<=)': '<=',
+                'katta  (>=)': '>=',
+                'teng    (=)': '='
+            }
+            sign_rev = {v: k for k, v in sign_map.items()}
+            sign_options = list(sign_map.keys())
+            def_idx = sign_options.index(sign_rev[ds])
             chosen = st.selectbox(f"sign_{i}", sign_options,
                                   index=def_idx,
                                   label_visibility="collapsed",
                                   key=f"s_{i}")
-            sign = sign_values[sign_options.index(chosen)]
+            sign = sign_map[chosen]
         with lbl3:
             st.markdown("<p style='margin:0'></p>", unsafe_allow_html=True)
         with cc:
