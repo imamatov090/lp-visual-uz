@@ -383,9 +383,14 @@ with col_left:
             b = st.text_input(f"b{i}", value=str(db),
                                label_visibility="collapsed", key=f"b_{i}")
         with cs:
-            sign = st.selectbox(f"s{i}", ['<=', '>=', '='],
-                                 index=['<=','>=','='].index(ds),
-                                 label_visibility="collapsed", key=f"s_{i}")
+            sign_labels = ['≤  kichik', '≥  katta', '=  teng']
+            sign_values = ['<=', '>=', '=']
+            default_idx = sign_values.index(ds)
+            sign_label  = st.selectbox(f"s{i}", sign_labels,
+                                       index=default_idx,
+                                       label_visibility="collapsed",
+                                       key=f"s_{i}")
+            sign = sign_values[sign_labels.index(sign_label)]
         with cc:
             c = st.text_input(f"c{i}", value=str(dc),
                                label_visibility="collapsed", key=f"c_{i}")
