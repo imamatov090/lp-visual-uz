@@ -244,15 +244,15 @@ with LEFT:
     for i in range(st.session_state.n):
         da, db, ds, dc = DEFAULTS[i] if i < len(DEFAULTS) else (1.0,1.0,'<=',0.0)
         ca, cb, cs, cc = st.columns([2, 2, 1, 2])
-        with ca: a    = st.text_input("a · x  +", value=str(da), key=f"a{i}")
-        with cb: b    = st.text_input("b · y",    value=str(db), key=f"b{i}")
+        with ca: a    = st.text_input("a · x  +", value=str(da), key=f"row_a_{i}")
+        with cb: b    = st.text_input("b · y",    value=str(db), key=f"row_b_{i}")
         with cs:
             sign_labels = ["≤  не более", "≥  не менее", "=  равно"]
             sign_values = ["<=", ">=", "="]
-            chosen = st.selectbox("\u0417\u043d\u0430\u043a", sign_labels,
-                                  index=sign_values.index(ds), key=f"s{i}")
+            chosen = st.selectbox("Знак", sign_labels,
+                                  index=sign_values.index(ds), key=f"row_s_{i}")
             sign = sign_values[sign_labels.index(chosen)]
-        with cc: c    = st.text_input("Правая часть", value=str(dc), key=f"c{i}")
+        with cc: c    = st.text_input("Правая часть", value=str(dc), key=f"row_c_{i}")
         cons_raw.append((a, b, sign, c))
 
     st.caption("Коэффициенты: целые или дробные (запятая/точка).")
