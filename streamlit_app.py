@@ -224,10 +224,15 @@ LEFT, RIGHT = st.columns([1, 1.7], gap="large")
 with LEFT:
     # Целевая функция
     st.subheader("Целевая функция")
-    f1, f2, f3 = st.columns([2, 2, 1])
-    with f1: c1s  = st.text_input("c₁  * x  +", value="5,3",  key="c1")
-    with f2: c2s  = st.text_input("c₂  * y  →", value="-7,1", key="c2")
-    with f3: otype = st.selectbox("Тип", ["max","min"],        key="ot")
+    f1, lbl1, f2, lbl2, f3 = st.columns([2, 1, 2, 1, 1])
+    with f1:  c1s  = st.text_input("c1", value="5,3",  key="c1",
+                                    label_visibility="collapsed")
+    with lbl1: st.markdown("**x +**")
+    with f2:  c2s  = st.text_input("c2", value="-7,1", key="c2",
+                                    label_visibility="collapsed")
+    with lbl2: st.markdown("**y →**")
+    with f3:  otype = st.selectbox("opt", ["max","min"], key="ot",
+                                    label_visibility="collapsed")
 
     # Ограничения
     st.subheader("Ограничения")
@@ -240,19 +245,36 @@ with LEFT:
                      disabled=st.session_state.n <= 1):
             st.session_state.n -= 1; st.rerun()
 
+    # Заголовок колонок
+    h1, h2, h3, h4, h5, h6, h7 = st.columns([2, 0.5, 2, 0.5, 2, 2, 0.5])
+    with h1: st.markdown("<small><b>x-коэф.</b></small>", unsafe_allow_html=True)
+    with h3: st.markdown("<small><b>y-коэф.</b></small>", unsafe_allow_html=True)
+    with h5: st.markdown("<small><b>Знак</b></small>", unsafe_allow_html=True)
+    with h6: st.markdown("<small><b>Правая часть</b></small>", unsafe_allow_html=True)
+
     cons_raw = []
     for i in range(st.session_state.n):
         da, db, ds, dc = DEFAULTS[i] if i < len(DEFAULTS) else (1.0,1.0,'<=',0.0)
-        ca, cb, cs, cc = st.columns([2, 2, 1, 2])
-        with ca: a    = st.text_input("a · x  +", value=str(da), key=f"row_a_{i}")
-        with cb: b    = st.text_input("b · y",    value=str(db), key=f"row_b_{i}")
+        ca, lx, cb, ly, cs, cc, _ = st.columns([2, 0.5, 2, 0.5, 2, 2, 0.5])
+        with ca:
+            a = st.text_input(f"a{i}", value=str(da),
+                              label_visibility="collapsed", key=f"row_a_{i}")
+        with lx:
+            st.markdown("**x +**")
+        with cb:
+            b = st.text_input(f"b{i}", value=str(db),
+                              label_visibility="collapsed", key=f"row_b_{i}")
+        with ly:
+            st.markdown("**y**")
         with cs:
-            sign_labels = ["≤  не более", "≥  не менее", "=  равно"]
-            sign_values = ["<=", ">=", "="]
-            chosen = st.selectbox("Знак", sign_labels,
-                                  index=sign_values.index(ds), key=f"row_s_{i}")
-            sign = sign_values[sign_labels.index(chosen)]
-        with cc: c    = st.text_input("Правая часть", value=str(dc), key=f"row_c_{i}")
+            sign = st.radio(f"s{i}", ["<=", ">=", "="],
+                            index=["<=", ">=", "="].index(ds),
+                            key=f"row_s_{i}",
+                            horizontal=True,
+                            label_visibility="collapsed")
+        with cc:
+            c = st.text_input(f"c{i}", value=str(dc),
+                              label_visibility="collapsed", key=f"row_c_{i}")
         cons_raw.append((a, b, sign, c))
 
     st.caption("Коэффициенты: целые или дробные (запятая/точка).")
