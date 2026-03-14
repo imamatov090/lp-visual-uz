@@ -222,50 +222,68 @@ DEFAULTS = [(3.2,-2.0,'=',3.0), (1.6,2.3,'<=',-5.0),
 LEFT, RIGHT = st.columns([1, 1.7], gap="large")
 
 with LEFT:
-    # Целевая функция
+    # ── Целевая функция ──────────────────────────────
     st.markdown("**Целевая функция**")
-    f1, f2, f3 = st.columns([3, 3, 2])
-    with f1:  c1s   = st.text_input("x", value="5,3",   key="c1", placeholder="c₁")
-    with f2:  c2s   = st.text_input("y", value="-7,1",  key="c2", placeholder="c₂")
-    with f3:  otype = st.selectbox("→", ["max","min"],  key="ot")
+    f1, lx1, f2, lx2, f3 = st.columns([2.5, 1.2, 2.5, 1.5, 1.5])
+    with f1:
+        c1s = st.text_input("c1", value="5,3", key="c1",
+                             label_visibility="collapsed")
+    with lx1:
+        st.markdown("<p style='padding-top:7px;font-size:0.95rem;font-weight:600'>* x +</p>",
+                    unsafe_allow_html=True)
+    with f2:
+        c2s = st.text_input("c2", value="-7,1", key="c2",
+                             label_visibility="collapsed")
+    with lx2:
+        st.markdown("<p style='padding-top:7px;font-size:0.95rem;font-weight:600'>* y →</p>",
+                    unsafe_allow_html=True)
+    with f3:
+        otype = st.selectbox("opt", ["max", "min"], key="ot",
+                              label_visibility="collapsed")
 
-    # Ограничения
+    # ── Ограничения ───────────────────────────────────
     st.markdown("**Ограничения**")
-    btn1, btn2 = st.columns(2)
-    with btn1:
-        if st.button("+ Добавить", use_container_width=True):
-            st.session_state.n += 1; st.rerun()
-    with btn2:
-        if st.button("− Удалить", use_container_width=True,
-                     disabled=st.session_state.n <= 1):
-            st.session_state.n -= 1; st.rerun()
-
-    # Знаки: emoji+текст для наглядности
-    SIGN_OPTS = {"<= (не более)": "<=", ">= (не менее)": ">=", "= (равно)": "="}
-    SIGN_REV  = {v: k for k, v in SIGN_OPTS.items()}
 
     cons_raw = []
     for i in range(st.session_state.n):
         da, db, ds, dc = DEFAULTS[i] if i < len(DEFAULTS) else (1.0,1.0,'<=',0.0)
-        ca, cb, cs, cc = st.columns([3, 3, 4, 3])
+        ca, lx, cb, ly, cs, cc, cdel = st.columns([2.2, 1, 2.2, 0.8, 1.5, 2.2, 0.7])
         with ca:
-            a = st.text_input(f"x{i}", value=str(da),
-                              key=f"row_a_{i}", placeholder="x-коэф.")
+            a = st.text_input(f"a{i}", value=str(da),
+                              key=f"row_a_{i}", label_visibility="collapsed")
+        with lx:
+            st.markdown("<p style='padding-top:7px;font-size:0.9rem;font-weight:600;color:#555'>* x +</p>",
+                        unsafe_allow_html=True)
         with cb:
-            b = st.text_input(f"y{i}", value=str(db),
-                              key=f"row_b_{i}", placeholder="y-коэф.")
+            b = st.text_input(f"b{i}", value=str(db),
+                              key=f"row_b_{i}", label_visibility="collapsed")
+        with ly:
+            st.markdown("<p style='padding-top:7px;font-size:0.9rem;font-weight:600;color:#555'>* y</p>",
+                        unsafe_allow_html=True)
         with cs:
-            chosen = st.selectbox(f"z{i}", list(SIGN_OPTS.keys()),
-                                  index=list(SIGN_OPTS.keys()).index(SIGN_REV[ds]),
-                                  key=f"row_s_{i}",
-                                  label_visibility="collapsed")
-            sign = SIGN_OPTS[chosen]
+            sign = st.selectbox(f"s{i}", ["=", "≤", "≥"],
+                                index=["=","≤","≥"].index(
+                                    {"=":"=","<=":"≤",">=":"≥"}[ds]),
+                                key=f"row_s_{i}",
+                                label_visibility="collapsed")
+            sign = {"=":"=","≤":"<=","≥":">="}[sign]
         with cc:
-            c = st.text_input(f"rhs{i}", value=str(dc),
-                              key=f"row_c_{i}", placeholder="правая часть")
+            c = st.text_input(f"c{i}", value=str(dc),
+                              key=f"row_c_{i}", label_visibility="collapsed")
+        with cdel:
+            st.markdown("<p style='margin:0;padding-top:2px'></p>",
+                        unsafe_allow_html=True)
+            if st.button("−", key=f"del_{i}",
+                         help="Удалить строку"):
+                if st.session_state.n > 1:
+                    st.session_state.n -= 1
+                    st.rerun()
         cons_raw.append((a, b, sign, c))
 
-    st.caption("Запятая или точка для дробных.")
+    if st.button("+ Добавить ограничение", use_container_width=True):
+        st.session_state.n += 1; st.rerun()
+
+    st.caption("Коэффициенты можно вводить целыми или дробными (запятая/точка).")
     st.divider()
 
     solve_btn = st.button("✅  Решить",   type="primary", use_container_width=True)
