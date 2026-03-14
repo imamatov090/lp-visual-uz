@@ -2,7 +2,6 @@ import streamlit as st
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from matplotlib.patches import Polygon as MplPolygon
 import numpy as np
 from itertools import combinations
@@ -10,555 +9,334 @@ import io
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.platypus import (SimpleDocTemplate, Paragraph,
+                                 Spacer, Image, Table, TableStyle)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
-import base64
 
-# ─────────────────────────────────────────────
-st.set_page_config(
-    page_title="Линейное программирование — Решатель",
-    page_icon="📊",
-    layout="wide"
-)
+st.set_page_config(page_title="ЛП — Решатель", page_icon="📊", layout="wide")
 
 st.markdown("""
 <style>
-.main-title {
-    text-align: center;
-    font-size: 2rem;
-    font-weight: 800;
-    color: #1a3a5c;
-    margin-bottom: 0.5rem;
-}
-.step-box {
-    background: #f0f7ff;
-    border-left: 4px solid #2980b9;
-    padding: 10px 14px;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    font-size: 0.92rem;
-}
-.result-box {
-    background: #eafaf1;
-    border: 2px solid #27ae60;
-    border-radius: 10px;
-    padding: 14px;
-    margin-top: 10px;
-}
-.error-box {
-    background: #fef9f9;
-    border: 2px solid #e74c3c;
-    border-radius: 10px;
-    padding: 14px;
-    margin-top: 10px;
-    color: #c0392b;
-}
+.title{text-align:center;font-size:1.8rem;font-weight:800;
+       color:#1a3a5c;margin-bottom:1rem}
+.step{background:#f0f7ff;border-left:4px solid #2980b9;
+      padding:8px 12px;border-radius:6px;margin-bottom:6px;font-size:0.9rem}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-title">📊 Линейное программирование — Решатель</div>',
-            unsafe_allow_html=True)
+st.markdown(
+    '<div class="title">📊 Линейное программирование — Решатель</div>',
+    unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-# АЛГОРИТМ
-# ─────────────────────────────────────────────
+# ── Алгоритм ─────────────────────────────────────────────────
 
-def parse_float(s):
+def pf(s):
     return float(str(s).replace(',', '.').strip())
 
-def line_intersection(a1, b1, c1, a2, b2, c2):
-    det = a1 * b2 - a2 * b1
-    if abs(det) < 1e-10:
+def intersect(a1, b1, c1, a2, b2, c2):
+    d = a1*b2 - a2*b1
+    if abs(d) < 1e-10:
         return None
-    x = (c1 * b2 - c2 * b1) / det
-    y = (a1 * c2 - a2 * c1) / det
-    return (x, y)
+    return ((c1*b2 - c2*b1)/d, (a1*c2 - a2*c1)/d)
 
-def satisfies(x, y, constraints):
-    for a, b, sign, c in constraints:
-        val = a * x + b * y
-        if sign == '<=' and val > c + 1e-8:
-            return False
-        if sign == '>=' and val < c - 1e-8:
-            return False
-        if sign == '='  and abs(val - c) > 1e-8:
-            return False
+def feasible(x, y, cons):
+    for a, b, s, c in cons:
+        v = a*x + b*y
+        if s == '<=' and v > c + 1e-8: return False
+        if s == '>=' and v < c - 1e-8: return False
+        if s == '='  and abs(v-c) > 1e-8: return False
     return True
 
-def find_corner_points(constraints):
-    """Шаг 0: перебор всех пар прямых → угловые точки ОДР."""
-    corners = []
-    for i, j in combinations(range(len(constraints)), 2):
-        a1, b1, _, c1 = constraints[i]
-        a2, b2, _, c2 = constraints[j]
-        pt = line_intersection(a1, b1, c1, a2, b2, c2)
-        if pt is None:
-            continue
-        x, y = pt
-        if satisfies(x, y, constraints):
-            dup = any(abs(cx - x) < 1e-6 and abs(cy - y) < 1e-6
-                      for cx, cy in corners)
-            if not dup:
-                corners.append((round(x, 6), round(y, 6)))
-    return corners
-
-def find_optimum(corners, c1, c2, opt_type):
-    if not corners:
-        return None, None
-    vals = [c1 * x + c2 * y for x, y in corners]
-    idx = int(np.argmax(vals)) if opt_type == 'max' else int(np.argmin(vals))
-    return corners[idx], vals[idx]
-
-def inner_point(corners):
-    """Шаг 1: внутренняя точка — среднее двух угловых точек."""
-    x3 = (corners[0][0] + corners[1][0]) / 2
-    y3 = (corners[0][1] + corners[1][1]) / 2
-    return x3, y3
-
-def level_line_axis_points(c1, c2, x3, y3):
-    """Шаг 2: пересечения линии уровня с осями."""
-    C = c1 * x3 + c2 * y3
+def get_corners(cons):
     pts = []
-    if abs(c2) > 1e-10:
-        pts.append((0.0, round(C / c2, 4)))
-    if abs(c1) > 1e-10:
-        pts.append((round(C / c1, 4), 0.0))
-    return C, pts
+    for i, j in combinations(range(len(cons)), 2):
+        a1,b1,_,c1 = cons[i]
+        a2,b2,_,c2 = cons[j]
+        p = intersect(a1,b1,c1,a2,b2,c2)
+        if p is None:
+            continue
+        x, y = p
+        if feasible(x, y, cons):
+            if not any(abs(cx-x)<1e-6 and abs(cy-y)<1e-6 for cx,cy in pts):
+                pts.append((round(x,6), round(y,6)))
+    return pts
 
-def sort_polygon(points):
-    if len(points) < 3:
-        return points
-    cx = sum(p[0] for p in points) / len(points)
-    cy = sum(p[1] for p in points) / len(points)
-    return sorted(points, key=lambda p: np.arctan2(p[1]-cy, p[0]-cx))
+def get_optimum(pts, c1, c2, ot):
+    if not pts:
+        return None, None
+    vals = [c1*x + c2*y for x,y in pts]
+    i = int(np.argmax(vals)) if ot == 'max' else int(np.argmin(vals))
+    return pts[i], vals[i]
 
-# ─────────────────────────────────────────────
-# ГРАФИК
-# ─────────────────────────────────────────────
+def sort_poly(pts):
+    if len(pts) < 3:
+        return pts
+    cx = sum(p[0] for p in pts)/len(pts)
+    cy = sum(p[1] for p in pts)/len(pts)
+    return sorted(pts, key=lambda p: np.arctan2(p[1]-cy, p[0]-cx))
 
-COLORS = ['#1f77b4','#d62728','#2ca02c','#9467bd',
-          '#8c564b','#e377c2','#17becf','#bcbd22']
-
-def build_figure(constraints, c1, c2, opt_type,
-                 corners, optimum, opt_val,
-                 animate_step=None, total_steps=40):
-    fig, ax = plt.subplots(figsize=(8, 6.5))
+def make_fig(cons, c1, c2, ot, cpts, opt, oval, astep=None, tsteps=40):
+    fig, ax = plt.subplots(figsize=(7, 6))
     ax.set_facecolor('#FAFAFA')
+    COLS = ['#1f77b4','#d62728','#2ca02c','#9467bd',
+            '#8c564b','#e377c2','#17becf','#bcbd22']
 
-    # Диапазон осей
-    if corners:
-        all_x = [p[0] for p in corners]
-        all_y = [p[1] for p in corners]
-        margin = max(4, (max(all_x)-min(all_x))*0.55+3,
-                        (max(all_y)-min(all_y))*0.55+3)
-        cx_mid = (max(all_x)+min(all_x))/2
-        cy_mid = (max(all_y)+min(all_y))/2
+    if cpts:
+        xs = [p[0] for p in cpts]; ys = [p[1] for p in cpts]
+        mg = max(5, (max(xs)-min(xs))*0.6+3, (max(ys)-min(ys))*0.6+3)
+        mx, my = (max(xs)+min(xs))/2, (max(ys)+min(ys))/2
     else:
-        margin, cx_mid, cy_mid = 8, 0, 0
+        mg, mx, my = 8, 0, 0
 
-    x_min, x_max = cx_mid - margin, cx_mid + margin
-    y_min, y_max = cy_mid - margin, cy_mid + margin
-    xs = np.linspace(x_min, x_max, 700)
+    xl, xr = mx-mg, mx+mg
+    yl, yr = my-mg, my+mg
+    xv = np.linspace(xl, xr, 600)
 
-    # ── Ограничения ──
-    for idx, (a, b, sign, c) in enumerate(constraints):
-        col = COLORS[idx % len(COLORS)]
-        s = {'<=':'≤','>=':'≥','=':'='}.get(sign, sign)
-        lbl = f'{a:.2f}·x + {b:.2f}·y {s} {c:.2f}'
+    for idx, (a, b, s, c) in enumerate(cons):
+        col = COLS[idx % len(COLS)]
+        lbl = f'{a}*x + {b}*y {s} {c}'
         if abs(b) > 1e-10:
-            ax.plot(xs, (c - a*xs)/b, color=col, lw=1.8, label=lbl)
+            ax.plot(xv, (c-a*xv)/b, color=col, lw=1.8, label=lbl)
         elif abs(a) > 1e-10:
             ax.axvline(c/a, color=col, lw=1.8, label=lbl)
 
-    # ── ОДР (закрашенный многоугольник) ──
-    if len(corners) >= 3:
-        poly_pts = sort_polygon(corners)
-        patch = MplPolygon(poly_pts, closed=True,
-                           facecolor='#AED6F1', edgecolor='none',
-                           alpha=0.35, zorder=2, label='ОДР')
-        ax.add_patch(patch)
-
-    # ── Угловые точки ──
-    if corners:
-        ax.scatter([p[0] for p in corners],
-                   [p[1] for p in corners],
+    if len(cpts) >= 3:
+        ax.add_patch(MplPolygon(sort_poly(cpts), closed=True,
+                                facecolor='#AED6F1', edgecolor='none',
+                                alpha=0.35, zorder=2, label='ОДР'))
+    if cpts:
+        ax.scatter([p[0] for p in cpts], [p[1] for p in cpts],
                    color='red', s=65, zorder=6,
                    edgecolors='darkred', lw=1, label='Угловые точки')
 
-    # ── Линия уровня ──
-    if optimum:
-        opt_x, opt_y = optimum
-        C_final = c1*opt_x + c2*opt_y
-
-        if animate_step is not None and len(corners) >= 2:
-            # Анимация: линия движется от C_inner к C_final
-            x3, y3 = inner_point(corners)
-            C_inner = c1*x3 + c2*y3
-            t = min(animate_step, total_steps) / total_steps
-            C_cur = C_inner + (C_final - C_inner) * t
+    if opt:
+        ox, oy = opt
+        Cf = c1*ox + c2*oy
+        if astep is not None and len(cpts) >= 2:
+            x3 = (cpts[0][0]+cpts[1][0])/2
+            y3 = (cpts[0][1]+cpts[1][1])/2
+            Ci = c1*x3 + c2*y3
+            t  = min(astep, tsteps)/tsteps
+            Cc = Ci + (Cf-Ci)*t
         else:
-            C_cur = C_final
+            Cc = Cf
 
         if abs(c2) > 1e-10:
-            y_lv = (C_cur - c1*xs) / c2
-            lbl_lv = (f'Линия уровня Z={C_cur:.2f}'
-                      if animate_step is not None
-                      else f'Целевая прямая: {c1:.2f}·x+{c2:.2f}·y={C_cur:.2f}')
-            ax.plot(xs, y_lv, 'k--', lw=1.8, alpha=0.8,
-                    label=lbl_lv, zorder=5)
+            lbl2 = (f'Линия уровня Z={Cc:.2f}' if astep is not None
+                    else f'Целевая прямая: {c1}*x+{c2}*y={Cc:.2f}')
+            ax.plot(xv, (Cc-c1*xv)/c2, 'k--', lw=1.8,
+                    alpha=0.8, label=lbl2, zorder=5)
 
-        # ── Вектор ∇Z ──
-        if animate_step is None:
-            norm = np.sqrt(c1**2 + c2**2)
-            if norm > 1e-10:
-                sc = margin * 0.17
-                dx, dy = c1/norm*sc, c2/norm*sc
-                ax.annotate('', xy=(opt_x+dx, opt_y+dy),
-                            xytext=(opt_x, opt_y),
+        if astep is None:
+            nm = np.sqrt(c1**2 + c2**2)
+            if nm > 1e-10:
+                sc = mg*0.18
+                dx, dy = c1/nm*sc, c2/nm*sc
+                ax.annotate('', xy=(ox+dx, oy+dy), xytext=(ox, oy),
                             arrowprops=dict(arrowstyle='->',
-                                            color='darkred', lw=2.2),
-                            zorder=9)
-                ax.text(opt_x+dx*1.2, opt_y+dy*1.2, '∇Z',
-                        fontsize=11, color='darkred',
-                        fontweight='bold', zorder=9)
+                                            color='darkred', lw=2.2), zorder=9)
+                ax.text(ox+dx*1.2, oy+dy*1.2, '∇Z', fontsize=11,
+                        color='darkred', fontweight='bold', zorder=9)
 
-        # ── Оптимум ──
-        ax.scatter([opt_x], [opt_y], color='gold', s=240,
-                   zorder=10, marker='*',
+        ax.scatter([ox], [oy], color='gold', s=240, zorder=10, marker='*',
                    edgecolors='#8B6914', lw=1.2, label='Оптимум')
-        ax.annotate(f'Оптимум ({opt_x:.2f}; {opt_y:.2f})',
-                    (opt_x, opt_y),
-                    xytext=(opt_x + margin*0.18, opt_y + margin*0.18),
+        ax.annotate(f'Оптимум ({ox:.2f}; {oy:.2f})', (ox, oy),
+                    xytext=(ox+mg*0.18, oy+mg*0.18),
                     fontsize=9, color='#1A5276', fontweight='bold',
                     bbox=dict(boxstyle='round,pad=0.25',
                               facecolor='#EBF5FB', alpha=0.9),
                     arrowprops=dict(arrowstyle='->', color='#1A5276', lw=1.2),
                     zorder=11)
 
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
+    ax.set_xlim(xl, xr); ax.set_ylim(yl, yr)
     ax.axhline(0, color='black', lw=0.8)
     ax.axvline(0, color='black', lw=0.8)
-    ax.set_xlabel('x', fontsize=12)
-    ax.set_ylabel('y', fontsize=12)
+    ax.set_xlabel('x', fontsize=12); ax.set_ylabel('y', fontsize=12)
     ax.set_title('График решения', fontsize=13, pad=10)
     ax.grid(True, alpha=0.25)
     ax.legend(fontsize=7.5, loc='upper right', framealpha=0.93)
-
     fig.tight_layout()
-    return fig
-
-def fig_to_bytes(fig):
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=130, bbox_inches='tight')
-    plt.close(fig)
-    buf.seek(0)
+    plt.close(fig); buf.seek(0)
     return buf.read()
 
-# ─────────────────────────────────────────────
-# PDF
-# ─────────────────────────────────────────────
-
-def generate_pdf(constraints, c1, c2, opt_type,
-                 corners, optimum, opt_val, img_bytes):
+def make_pdf(cons, c1, c2, ot, cpts, opt, oval, imgb):
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
                             rightMargin=2*cm, leftMargin=2*cm,
                             topMargin=2*cm, bottomMargin=2*cm)
     styles = getSampleStyleSheet()
-    title_st = ParagraphStyle('T', parent=styles['Title'],
-                               fontSize=15, alignment=TA_CENTER,
-                               spaceAfter=10, fontName='Helvetica-Bold')
-    h2_st = ParagraphStyle('H2', parent=styles['Heading2'],
-                            fontSize=11, spaceBefore=8, spaceAfter=5,
-                            fontName='Helvetica-Bold')
-    body_st = ParagraphStyle('B', parent=styles['Normal'],
-                              fontSize=10, spaceAfter=3)
-
-    story = []
-    story.append(Paragraph('Линейное программирование — Решатель', title_st))
-    story.append(Paragraph('Отчёт о решении задачи', h2_st))
-    story.append(Spacer(1, 0.2*cm))
-
-    arrow = '→ max' if opt_type == 'max' else '→ min'
-    story.append(Paragraph(
-        f'<b>Целевая функция:</b> Z = {c1}·x + ({c2})·y {arrow}', body_st))
-    story.append(Spacer(1, 0.15*cm))
-
-    story.append(Paragraph('<b>Ограничения:</b>', body_st))
-    for a, b, sign, c in constraints:
-        s = {'<=':'≤','>=':'≥','=':'='}.get(sign, sign)
-        story.append(Paragraph(f'&nbsp;&nbsp;{a}·x + ({b})·y {s} {c}', body_st))
-    story.append(Spacer(1, 0.2*cm))
-
-    story.append(Paragraph('<b>Результат:</b>', h2_st))
-    opt_x, opt_y = optimum
-    story.append(Paragraph(
-        f'Оптимальная точка: x* = {opt_x:.4f}, y* = {opt_y:.4f}', body_st))
-    story.append(Paragraph(
-        f'Оптимальное значение: Z* = {opt_val:.4f}', body_st))
-    story.append(Spacer(1, 0.2*cm))
-
-    story.append(Paragraph('<b>Угловые точки ОДР:</b>', h2_st))
-    tbl_data = [['№', 'x', 'y', 'Z']]
-    for i, (cx, cy) in enumerate(corners):
+    ts = ParagraphStyle('T', parent=styles['Title'], fontSize=14,
+                        alignment=TA_CENTER, spaceAfter=8,
+                        fontName='Helvetica-Bold')
+    hs = ParagraphStyle('H', parent=styles['Heading2'], fontSize=11,
+                        spaceBefore=6, spaceAfter=4, fontName='Helvetica-Bold')
+    bs = ParagraphStyle('B', parent=styles['Normal'],
+                        fontSize=10, spaceAfter=3)
+    arr = 'max' if ot == 'max' else 'min'
+    story = [Paragraph('Линейное программирование — Решатель', ts),
+             Spacer(1, 0.2*cm),
+             Paragraph(f'<b>Целевая функция:</b> Z = {c1}*x + ({c2})*y → {arr}', bs),
+             Paragraph('<b>Ограничения:</b>', hs)]
+    for a, b, s, c in cons:
+        story.append(Paragraph(f'&nbsp;&nbsp;{a}*x + ({b})*y {s} {c}', bs))
+    ox, oy = opt
+    story += [Spacer(1, 0.2*cm),
+              Paragraph('<b>Результат:</b>', hs),
+              Paragraph(f'x* = {ox:.4f},  y* = {oy:.4f}', bs),
+              Paragraph(f'Z* = {oval:.4f}', bs),
+              Spacer(1, 0.2*cm),
+              Paragraph('<b>Угловые точки:</b>', hs)]
+    td = [['№','x','y','Z']]
+    for i, (cx, cy) in enumerate(cpts):
         zv = c1*cx + c2*cy
-        mark = ' ← оптимум' if (abs(cx-opt_x)<1e-4 and abs(cy-opt_y)<1e-4) else ''
-        tbl_data.append([str(i+1), f'{cx:.4f}', f'{cy:.4f}', f'{zv:.4f}{mark}'])
-    tbl = Table(tbl_data, colWidths=[1.2*cm, 4*cm, 4*cm, 6.5*cm])
-    tbl.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2980B9')),
-        ('TEXTCOLOR',  (0,0), (-1,0), colors.white),
-        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
-        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1),
+        m = ' ← оптимум' if abs(cx-ox)<1e-4 and abs(cy-oy)<1e-4 else ''
+        td.append([str(i+1), f'{cx:.4f}', f'{cy:.4f}', f'{zv:.4f}{m}'])
+    t = Table(td, colWidths=[1.2*cm,4*cm,4*cm,6.5*cm])
+    t.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#2980B9')),
+        ('TEXTCOLOR',(0,0),(-1,0),colors.white),
+        ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
+        ('ALIGN',(0,0),(-1,-1),'CENTER'),
+        ('ROWBACKGROUNDS',(0,1),(-1,-1),
          [colors.white, colors.HexColor('#EBF5FB')]),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('GRID',(0,0),(-1,-1),0.5,colors.grey),
+        ('FONTSIZE',(0,0),(-1,-1),9),
     ]))
-    story.append(tbl)
-    story.append(Spacer(1, 0.3*cm))
-
-    story.append(Paragraph('<b>График решения:</b>', h2_st))
-    img_buf = io.BytesIO(img_bytes)
-    story.append(Image(img_buf, width=14*cm, height=11*cm))
-
-    doc.build(story)
-    buf.seek(0)
+    story += [t, Spacer(1,0.3*cm),
+              Paragraph('<b>График:</b>', hs),
+              Image(io.BytesIO(imgb), width=14*cm, height=11*cm)]
+    doc.build(story); buf.seek(0)
     return buf.read()
 
-# ─────────────────────────────────────────────
-# ИНТЕРФЕЙС
-# ─────────────────────────────────────────────
+# ── Session state ─────────────────────────────────────────────
+if 'n'   not in st.session_state: st.session_state.n   = 5
+if 'res' not in st.session_state: st.session_state.res = None
 
-col_left, col_right = st.columns([1, 1.6], gap="large")
+DEFAULTS = [(3.2,-2.0,'=',3.0), (1.6,2.3,'<=',-5.0),
+            (3.2,-6.0,'>=',7.0), (7.0,-2.0,'<=',10.0), (-6.5,3.0,'<=',9.0)]
 
-with col_left:
+# ── Layout ────────────────────────────────────────────────────
+LEFT, RIGHT = st.columns([1, 1.7], gap="large")
+
+with LEFT:
+    # Целевая функция
     st.subheader("Целевая функция")
-    c1_col, c2_col, opt_col = st.columns([2, 2, 1.5])
-    with c1_col:
-        c1_str = st.text_input("Коэф. x", value="5,3", label_visibility="collapsed",
-                                placeholder="c₁")
-        st.caption("* x  +")
-    with c2_col:
-        c2_str = st.text_input("Коэф. y", value="-7,1", label_visibility="collapsed",
-                                placeholder="c₂")
-        st.caption("* y  →")
-    with opt_col:
-        opt_type = st.selectbox("Тип", ["max", "min"],
-                                 label_visibility="collapsed")
+    f1, f2, f3 = st.columns([2, 2, 1])
+    with f1: c1s  = st.text_input("c₁  * x  +", value="5,3",  key="c1")
+    with f2: c2s  = st.text_input("c₂  * y  →", value="-7,1", key="c2")
+    with f3: otype = st.selectbox("Тип", ["max","min"],        key="ot")
 
+    # Ограничения
     st.subheader("Ограничения")
+    btn1, btn2 = st.columns(2)
+    with btn1:
+        if st.button("+ Добавить", use_container_width=True):
+            st.session_state.n += 1; st.rerun()
+    with btn2:
+        if st.button("− Удалить", use_container_width=True,
+                     disabled=st.session_state.n <= 1):
+            st.session_state.n -= 1; st.rerun()
 
-    # Число ограничений
-    if 'n_constraints' not in st.session_state:
-        st.session_state.n_constraints = 5
+    cons_raw = []
+    for i in range(st.session_state.n):
+        da, db, ds, dc = DEFAULTS[i] if i < len(DEFAULTS) else (1.0,1.0,'<=',0.0)
+        ca, cb, cs, cc = st.columns([2, 2, 1, 2])
+        with ca: a    = st.text_input("a · x  +", value=str(da), key=f"a{i}")
+        with cb: b    = st.text_input("b · y",    value=str(db), key=f"b{i}")
+        with cs: sign = st.selectbox( "Знак",
+                                      ["<=", ">=", "="],
+                                      index=["<=",">=","="].index(ds),
+                                      key=f"s{i}")
+        with cc: c    = st.text_input("Правая часть", value=str(dc), key=f"c{i}")
+        cons_raw.append((a, b, sign, c))
 
-    b1, b2 = st.columns(2)
-    with b1:
-        if st.button("+ Добавить"):
-            st.session_state.n_constraints += 1
-    with b2:
-        if st.button("− Удалить", disabled=st.session_state.n_constraints <= 1):
-            st.session_state.n_constraints -= 1
+    st.caption("Коэффициенты: целые или дробные (запятая/точка).")
+    st.divider()
 
-    # Дефолтные значения из скриншота
-    defaults = [
-        (3.2, -2.0, '=',  3.0),
-        (1.6,  2.3, '<=', -5.0),
-        (3.2, -6.0, '>=',  7.0),
-        (7.0, -2.0, '<=', 10.0),
-        (-6.5, 3.0, '<=',  9.0),
-    ]
-
-    constraint_inputs = []
-    for i in range(st.session_state.n_constraints):
-        da, db, ds, dc = defaults[i] if i < len(defaults) else (1.0, 1.0, '<=', 0.0)
-        # Layout: [a] * x + [b] * y - [sign] - [c] - [X]
-        cols = st.columns([3, 1, 3, 1, 2, 3, 1])
-        with cols[0]:
-            a = st.text_input("a", value=str(da),
-                              label_visibility="collapsed", key=f"a_{i}")
-        with cols[1]:
-            st.markdown("<div style='padding-top:8px;font-weight:700;font-size:0.95rem;color:#2c3e50'>* x +</div>",
-                        unsafe_allow_html=True)
-        with cols[2]:
-            b = st.text_input("b", value=str(db),
-                              label_visibility="collapsed", key=f"b_{i}")
-        with cols[3]:
-            st.markdown("<div style='padding-top:8px;font-weight:700;font-size:0.95rem;color:#2c3e50'>* y</div>",
-                        unsafe_allow_html=True)
-        with cols[4]:
-            sign = st.selectbox("sign",
-                                options=["<=", ">=", "="],
-                                index=["<=", ">=", "="].index(ds),
-                                label_visibility="collapsed",
-                                key=f"s_{i}")
-        with cols[5]:
-            c = st.text_input("c", value=str(dc),
-                              label_visibility="collapsed", key=f"c_{i}")
-        with cols[6]:
-            st.markdown("<div style='padding-top:4px'>", unsafe_allow_html=True)
-            if st.button("−", key=f"del_{i}"):
-                st.session_state.n_constraints = max(1, st.session_state.n_constraints - 1)
-                st.rerun()
-        constraint_inputs.append((a, b, sign, c))
-
-    st.caption("Коэффициенты вводите целыми или дробными (запятая/точка).")
-
-    # Кнопки
-    solve_btn = st.button("✅ Решить", type="primary", use_container_width=True)
-    clear_btn = st.button("🗑 Очистить", use_container_width=True)
+    solve_btn = st.button("✅  Решить",   type="primary", use_container_width=True)
+    clear_btn = st.button("🗑  Очистить", use_container_width=True)
 
     if clear_btn:
-        st.session_state.n_constraints = 5
-        if 'result' in st.session_state:
-            del st.session_state.result
+        st.session_state.n   = 5
+        st.session_state.res = None
         st.rerun()
 
-# ─────────────────────────────────────────────
-# РЕШЕНИЕ
-# ─────────────────────────────────────────────
-
-if solve_btn:
-    try:
-        c1 = parse_float(c1_str)
-        c2 = parse_float(c2_str)
-
-        constraints = []
-        for a_s, b_s, sign, c_s in constraint_inputs:
-            constraints.append((parse_float(a_s), parse_float(b_s),
-                                 sign, parse_float(c_s)))
-
-        # Шаг 0
-        corners = find_corner_points(constraints)
-
-        if not corners:
-            st.session_state.result = {
-                'status': 'error',
-                'msg': 'ОДР — пустое множество. Система ограничений несовместна.'
-            }
-        else:
-            optimum, opt_val = find_optimum(corners, c1, c2, opt_type)
-
-            # Шаги 1–2
-            x3, y3 = inner_point(corners)
-            C_inner, level_pts = level_line_axis_points(c1, c2, x3, y3)
-
-            # Строим финальный график
-            fig = build_figure(constraints, c1, c2, opt_type,
-                               corners, optimum, opt_val)
-            img_bytes = fig_to_bytes(fig)
-
-            st.session_state.result = {
-                'status': 'ok',
-                'c1': c1, 'c2': c2, 'opt_type': opt_type,
-                'constraints': constraints,
-                'corners': corners,
-                'optimum': optimum,
-                'opt_val': opt_val,
-                'inner': (x3, y3),
-                'C_inner': C_inner,
-                'level_pts': level_pts,
-                'img_bytes': img_bytes,
-            }
-    except Exception as e:
-        st.session_state.result = {'status': 'error', 'msg': str(e)}
-
-# ─────────────────────────────────────────────
-# ВЫВОД РЕЗУЛЬТАТА
-# ─────────────────────────────────────────────
-
-with col_left:
-    if 'result' in st.session_state:
-        r = st.session_state.result
+    # Результат
+    r = st.session_state.res
+    if r:
         if r['status'] == 'error':
             st.error(r['msg'])
         else:
-            opt_x, opt_y = r['optimum']
-            st.success(f"""
-**Оптимальная точка:** x\\* = {opt_x:.4f}, y\\* = {opt_y:.4f}
-
-**Значение Z\\*:** {r['opt_val']:.4f} ({r['opt_type']})
-
-**Угловых точек ОДР:** {len(r['corners'])}
-""")
-
-            # Алгоритм — шаги
-            with st.expander("📋 Алгоритм решения (шаги)", expanded=True):
-                corners = r['corners']
+            ox, oy = r['opt']
+            st.success(
+                f"**x\\* = {ox:.4f},  y\\* = {oy:.4f}**\n\n"
+                f"Z\\* = {r['oval']:.4f}  ({r['otype']})")
+            cpts = r['cpts']
+            x3 = (cpts[0][0]+cpts[1][0])/2 if len(cpts)>=2 else 0
+            y3 = (cpts[0][1]+cpts[1][1])/2 if len(cpts)>=2 else 0
+            Ci = r['c1']*x3 + r['c2']*y3
+            with st.expander("📋 Алгоритм (шаги)", expanded=True):
                 st.markdown(f"""
-<div class="step-box">
-<b>Шаг 0 — ОДР:</b> Найдено <b>{len(corners)}</b> угловых точек:<br>
-{', '.join(f'({x:.3f}; {y:.3f})' for x,y in corners)}
-</div>
-<div class="step-box">
-<b>Шаг 1 — Внутренняя точка:</b><br>
-x₃ = ({corners[0][0]:.3f} + {corners[1][0]:.3f}) / 2 = <b>{r['inner'][0]:.4f}</b><br>
-y₃ = ({corners[0][1]:.3f} + {corners[1][1]:.3f}) / 2 = <b>{r['inner'][1]:.4f}</b>
-</div>
-<div class="step-box">
-<b>Шаг 2 — Линия уровня:</b><br>
-C = {r['c1']}·{r['inner'][0]:.4f} + ({r['c2']})·{r['inner'][1]:.4f} = <b>{r['C_inner']:.4f}</b><br>
-Пересечения с осями: {', '.join(f'({p[0]}; {p[1]})' for p in r['level_pts'])}
-</div>
-<div class="step-box">
-<b>Шаг 3 — Оптимум:</b><br>
-Линия уровня достигает точки <b>({opt_x:.4f}; {opt_y:.4f})</b>, Z* = <b>{r['opt_val']:.4f}</b>
-</div>
+<div class="step"><b>Шаг 0 — ОДР:</b> {len(cpts)} угловых точек:<br>
+{', '.join(f'({x:.3f}; {y:.3f})' for x,y in cpts)}</div>
+<div class="step"><b>Шаг 1 — Внутренняя точка:</b>
+x₃ = {x3:.4f},  y₃ = {y3:.4f}</div>
+<div class="step"><b>Шаг 2 — Линия уровня:</b> C = {Ci:.4f}</div>
+<div class="step"><b>Шаг 3 — Оптимум:</b>
+x* = {ox:.4f},  y* = {oy:.4f},  Z* = {r['oval']:.4f}</div>
 """, unsafe_allow_html=True)
+            pdf = make_pdf(r['cons'], r['c1'], r['c2'], r['otype'],
+                           r['cpts'], r['opt'], r['oval'], r['img'])
+            st.download_button("📄 Скачать PDF", data=pdf,
+                               file_name="lp_report.pdf",
+                               mime="application/pdf",
+                               use_container_width=True)
 
-            # PDF
-            pdf_bytes = generate_pdf(
-                r['constraints'], r['c1'], r['c2'], r['opt_type'],
-                r['corners'], r['optimum'], r['opt_val'], r['img_bytes']
-            )
-            st.download_button(
-                label="📄 Скачать отчёт (PDF)",
-                data=pdf_bytes,
-                file_name="lp_report.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
+# ── Решение ──────────────────────────────────────────────────
+if solve_btn:
+    try:
+        c1   = pf(c1s); c2 = pf(c2s)
+        cons = [(pf(a), pf(b), s, pf(c)) for a,b,s,c in cons_raw]
+        cpts = get_corners(cons)
+        if not cpts:
+            st.session_state.res = {
+                'status': 'error',
+                'msg': 'ОДР пустое — система ограничений несовместна.'}
+        else:
+            opt, oval = get_optimum(cpts, c1, c2, otype)
+            img = make_fig(cons, c1, c2, otype, cpts, opt, oval)
+            st.session_state.res = {
+                'status':'ok', 'c1':c1, 'c2':c2, 'otype':otype,
+                'cons':cons, 'cpts':cpts, 'opt':opt, 'oval':oval, 'img':img}
+    except Exception as e:
+        st.session_state.res = {'status':'error', 'msg':str(e)}
+    st.rerun()
 
-# ─────────────────────────────────────────────
-# ПРАВАЯ КОЛОНКА — ГРАФИК + АНИМАЦИЯ
-# ─────────────────────────────────────────────
-
-with col_right:
-    if 'result' in st.session_state and st.session_state.result['status'] == 'ok':
-        r = st.session_state.result
-
-        tabs = st.tabs(["📈 График решения", "🎬 Анимация (Шаг 3)"])
-
-        # ── Вкладка 1: Финальный график ──
-        with tabs[0]:
-            st.image(r['img_bytes'], use_container_width=True)
-
-        # ── Вкладка 2: Анимация ──
-        with tabs[1]:
-            st.markdown("**Шаг 3 — Смещение линии уровня к оптимуму**")
-            total_steps = 40
-            anim_step = st.slider(
-                "Шаг анимации", 0, total_steps, 0,
-                help="Двигайте ползунок чтобы увидеть движение линии уровня"
-            )
-            fig_anim = build_figure(
-                r['constraints'], r['c1'], r['c2'], r['opt_type'],
-                r['corners'], r['optimum'], r['opt_val'],
-                animate_step=anim_step, total_steps=total_steps
-            )
-            img_anim = fig_to_bytes(fig_anim)
-            st.image(img_anim, use_container_width=True)
-
-            if anim_step == 0:
-                st.info("⬆️ Ползунок 0 — линия уровня через внутреннюю точку")
-            elif anim_step == total_steps:
-                st.success("✅ Ползунок максимум — линия достигла оптимума!")
+# ── График ────────────────────────────────────────────────────
+with RIGHT:
+    r = st.session_state.res
+    if r and r['status'] == 'ok':
+        tab1, tab2 = st.tabs(["📈 График решения", "🎬 Анимация"])
+        with tab1:
+            st.image(r['img'], use_container_width=True)
+        with tab2:
+            st.markdown("**Шаг 3 — движение линии уровня к оптимуму**")
+            step = st.slider("Шаг", 0, 40, 0)
+            aimg = make_fig(r['cons'], r['c1'], r['c2'], r['otype'],
+                            r['cpts'], r['opt'], r['oval'],
+                            astep=step, tsteps=40)
+            st.image(aimg, use_container_width=True)
+            if step == 0:
+                st.info("Бошланғич ҳолат — линия через внутреннюю точку")
+            elif step == 40:
+                st.success("✅ Оптимум топилди!")
             else:
-                t = anim_step / total_steps
-                C_cur = r['C_inner'] + (r['opt_val'] - r['C_inner']) * t
-                st.caption(f"Текущее значение Z = {C_cur:.2f}")
+                x3 = (r['cpts'][0][0]+r['cpts'][1][0])/2
+                y3 = (r['cpts'][0][1]+r['cpts'][1][1])/2
+                Ci = r['c1']*x3 + r['c2']*y3
+                st.caption(f"Z = {Ci + (r['oval']-Ci)*step/40:.2f}")
     else:
-        st.info("👈 Введите данные и нажмите **«Решить»**")
+        st.info("👈 Маълумот киритиб **«Решить»** тугмасини босинг")
