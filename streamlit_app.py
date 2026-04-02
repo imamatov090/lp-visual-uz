@@ -49,7 +49,7 @@ def create_pdf(opt_x, opt_y, opt_val, obj_type):
     pdf.cell(200, 10, txt=f"X = {opt_x:.4f}, Y = {opt_y:.4f}, Z = {opt_val:.4f}", ln=True)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- SIDEBAR ---
+# --- SIDEBAR: KIRITISH ---
 with st.sidebar:
     st.session_state.lang = st.radio("Language / Язык", ('RU', 'UZ'), horizontal=True)
     L = texts[st.session_state.lang]
@@ -72,14 +72,20 @@ with st.sidebar:
 
     new_c = []
     for i, con in enumerate(st.session_state.constraints):
-        # x, +, y belgilarini yonma-yon joylashtirish
+        # Qatorlarni aniq joylashtirish (x, +, y)
         c1, cx, c2, cy, c3, c4, c5 = st.columns([2, 0.4, 2, 0.4, 1.5, 2, 0.8])
-        with c1: av = st.number_input(f"a{i}", value=float(con['a']), key=f"av{i}", label_visibility="collapsed")
-        with cx: st.write("x")
-        with c2: bv = st.number_input(f"b{i}", value=float(con['b']), key=f"bv{i}", label_visibility="collapsed")
-        with cy: st.write("y")
-        with c3: opv = st.selectbox(f"o{i}", ("≤", "≥", "="), index=("≤", "≥", "=").index(con['op']), key=f"ov{i}", label_visibility="collapsed")
-        with c4: cv = st.number_input(f"c{i}", value=float(con['c']), key=f"cv{i}", label_visibility="collapsed")
+        with c1: 
+            av = st.number_input(f"a{i}", value=float(con['a']), key=f"av{i}", label_visibility="collapsed")
+        with cx: 
+            st.write("x")
+        with c2: 
+            bv = st.number_input(f"b{i}", value=float(con['b']), key=f"bv{i}", label_visibility="collapsed")
+        with cy: 
+            st.write("y")
+        with c3: 
+            opv = st.selectbox(f"o{i}", ("≤", "≥", "="), index=("≤", "≥", "=").index(con['op']), key=f"ov{i}", label_visibility="collapsed")
+        with c4: 
+            cv = st.number_input(f"c{i}", value=float(con['c']), key=f"cv{i}", label_visibility="collapsed")
         with c5: 
             if st.button("🗑️", key=f"dl{i}"):
                 st.session_state.constraints.pop(i)
@@ -93,11 +99,11 @@ with st.sidebar:
 
     solve_btn = st.button(L['solve'], type="primary", use_container_width=True)
 
-# --- ASOSIY QISM (RESHENIYA) ---
+# --- ASOSIY QISM (RESHENIYA O'ZGARISSIZ) ---
 st.markdown(f"<h1 style='text-align: center;'>{L['title']}</h1>", unsafe_allow_html=True)
 
 if solve_btn:
-    # 1. Hisoblash (Sizning original kodingiz bilan bir xil)
+    # 1. Hisob-kitob (Sizning kodingiz)
     sign = -1 if o_tp == "max" else 1
     c_list = [sign * cm1, sign * cm2]
     A_ub, b_ub, A_eq, b_eq = [], [], [], []
@@ -112,7 +118,7 @@ if solve_btn:
         ox, oy = res.x
         oz = cm1 * ox + cm2 * oy
         
-        # 2. Grafik (Sizning original kodingiz bilan bir xil)
+        # 2. Grafik (Sizning kodingiz)
         fig = go.Figure()
         xr = np.linspace(-20, 20, 1000)
         for i, c in enumerate(st.session_state.constraints):
