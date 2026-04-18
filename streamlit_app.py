@@ -77,30 +77,30 @@ def create_pdf(history):
 # --- SIDEBAR ---
 with st.sidebar:
     st.header(t_target)
-    # Maqsad funksiyasidagi ortiqcha belgilarni olib tashlash
-    col_v1, col_x, col_v2, col_y, col_t = st.columns([2.5, 1, 2.5, 1, 3])
+    # *x+ belgilari bir qatorda bo'lishi uchun col_x va col_y o'lchamlari sozlandi
+    col_v1, col_x, col_v2, col_y, col_t = st.columns([2.5, 1.2, 2.5, 1, 3])
     with col_v1: c_main1 = st.number_input("C1", value=5.3, format="%.1f", key="main_c1", label_visibility="collapsed")
-    with col_x: st.markdown("<div style='margin-top: 5px;'><b>*x +</b></div>", unsafe_allow_html=True)
+    with col_x: st.markdown("<div style='margin-top: 5px;'>*x +</div>", unsafe_allow_html=True)
     with col_v2: c_main2 = st.number_input("C2", value=-7.1, format="%.1f", key="main_c2", label_visibility="collapsed")
-    with col_y: st.markdown("<div style='margin-top: 5px;'><b>*y</b></div>", unsafe_allow_html=True)
+    with col_y: st.markdown("<div style='margin-top: 5px;'>*y</div>", unsafe_allow_html=True)
     with col_t: obj_type = st.selectbox("Тип", ("max", "min"), key="main_type", label_visibility="collapsed")
     
     st.markdown("---")
     st.header(t_cons)
     if 'constraints' not in st.session_state:
-        st.session_state.constraints = [{'a': 3.2, 'b': -2.0, 'op': '≤', 'c': 3.0}, {'a': 1.6, 'b': 2.3, 'op': '≤', 'c': -5.0}, {'a': 3.2, 'b': -6.0, 'op': '≥', 'c': 7.0}, {'a': 7.0, 'b': -2.0, 'op': '≤', 'c': 10.0}, {'a': -6.5, 'b': 3.0, 'op': '≤', 'c': 9.0}]
+        st.session_state.constraints = [{'a': 3.2, 'b': -2.0, 'op': '=', 'c': 3.0}, {'a': 1.6, 'b': 2.3, 'op': '≤', 'c': -5.0}, {'a': 3.2, 'b': -6.0, 'op': '≥', 'c': 7.0}, {'a': 7.0, 'b': -2.0, 'op': '≤', 'c': 10.0}, {'a': -6.5, 'b': 3.0, 'op': '≤', 'c': 9.0}]
     
     new_cons = []
     for i, cons in enumerate(st.session_state.constraints):
-        c1, c2, c3, c4, c5, c6, c7 = st.columns([3, 1.2, 3, 1, 2, 3, 1])
-        with c1: a_val = st.number_input(f"a{i}", value=float(cons['a']), key=f"a{i}", label_visibility="collapsed")
-        with c2: st.markdown("<div style='margin-top: 7px;'><b>*x +</b></div>", unsafe_allow_html=True)
-        with c3: b_val = st.number_input(f"b{i}", value=float(cons['b']), key=f"b{i}", label_visibility="collapsed")
-        with c4: st.markdown("<div style='margin-top: 7px;'><b>*y</b></div>", unsafe_allow_html=True)
-        with c5: op_val = st.selectbox(f"op{i}", ("≤", "≥", "="), index=("≤", "≥", "=").index(cons['op']), key=f"op{i}", label_visibility="collapsed")
-        with c6: c_val = st.number_input(f"c{i}", value=float(cons['c']), key=f"c{i}", label_visibility="collapsed")
-        with c7: 
-            if st.button("🗑️", key=f"del{i}"):
+        cl1, cl_x, cl2, cl_y, cl3, cl4, cl5 = st.columns([2, 1.2, 2, 0.8, 1.5, 2, 1])
+        with cl1: a_val = st.number_input(f"a{i}", value=float(cons['a']), key=f"inp_a{i}", label_visibility="collapsed")
+        with cl_x: st.markdown("<div style='margin-top: 5px;'>*x +</div>", unsafe_allow_html=True)
+        with cl2: b_val = st.number_input(f"b{i}", value=float(cons['b']), key=f"inp_b{i}", label_visibility="collapsed")
+        with cl_y: st.markdown("<div style='margin-top: 5px;'>*y</div>", unsafe_allow_html=True)
+        with cl3: op_val = st.selectbox(f"op{i}", ("≤", "≥", "="), index=("≤", "≥", "=").index(cons['op']), key=f"inp_op{i}", label_visibility="collapsed")
+        with cl4: c_val = st.number_input(f"c{i}", value=float(cons['c']), key=f"inp_c{i}", label_visibility="collapsed")
+        with cl5: 
+            if st.button("🗑️", key=f"btn_del{i}"):
                 st.session_state.constraints.pop(i); st.rerun()
         new_cons.append({'a': a_val, 'b': b_val, 'op': op_val, 'c': c_val})
     
@@ -127,8 +127,7 @@ if solve_btn:
     res = linprog(coeffs, A_ub=A_ub or None, b_ub=b_ub or None, A_eq=A_eq or None, b_eq=b_eq or None, bounds=(None, None), method='highs')
     
     fig = go.Figure()
-    limit = 15
-    x_range = np.linspace(-limit, limit, 1000)
+    x_range = np.linspace(-20, 20, 1000)
 
     corner_points = []
     lines = st.session_state.constraints
@@ -156,7 +155,7 @@ if solve_btn:
         fig.add_trace(go.Scatter(x=pts[:,0], y=pts[:,1], mode='markers', marker=dict(color='red', size=8), name="Угловые точки"))
         inner_x, inner_y = center[0], center[1]
         inner_z = c_main1 * inner_x + c_main2 * inner_y
-        fig.add_trace(go.Scatter(x=[inner_x], y=[inner_y], mode='markers', marker=dict(color='blue', size=10), name="Внуtr. tochka"))
+        fig.add_trace(go.Scatter(x=[inner_x], y=[inner_y], mode='markers', marker=dict(color='blue', size=10), name="Внутр. точка"))
         if abs(c_main2) > 1e-7:
             y_inner = (inner_z - c_main1 * x_range) / c_main2
             fig.add_trace(go.Scatter(x=x_range, y=y_inner, mode='lines', name=f"Линия уровня (Z={inner_z:.2f})", line=dict(color='blue', dash='dot', width=1.5)))
@@ -176,44 +175,15 @@ if solve_btn:
         fig.add_annotation(x=opt_x + 1.5, y=opt_y + (c_main2/c_main1 if c_main1 != 0 else 1.5), ax=opt_x, ay=opt_y, xref="x", yref="y", axref="x", ayref="y", text="VZ", showarrow=True, arrowhead=3, arrowcolor="red", font=dict(color="red", size=14))
         fig.add_trace(go.Scatter(x=[opt_x], y=[opt_y], mode='markers+text', text=[f"Оптимум ({opt_x:.2f}; {opt_y:.2f})"], textposition="top right", marker=dict(color='gold', size=18, symbol='star', line=dict(color='black', width=1)), name="Оптимум"))
 
-        # --- GRAFIKNI SOZLASH (SETKASIZ VA TOZA) ---
+        # GRAFIKNI SOZLASH (Setkasiz va oq fon)
         fig.update_layout(
-            plot_bgcolor='white',
+            xaxis=dict(showgrid=False, zeroline=True, zerolinecolor='black', dtick=2, range=[-15, 15]), 
+            yaxis=dict(showgrid=False, zeroline=True, zerolinecolor='black', dtick=2, range=[-15, 15]), 
+            plot_bgcolor='white', 
             paper_bgcolor='white',
-            xaxis=dict(
-                showgrid=False,       # Setkani olib tashlash
-                zeroline=True, 
-                zerolinecolor='black', 
-                zerolinewidth=2,
-                dtick=1, 
-                range=[-1, limit], 
-                ticks="outside", 
-                ticklen=10, 
-                tickcolor="black", 
-                tickfont=dict(size=14)
-            ),
-            yaxis=dict(
-                showgrid=False,       # Setkani olib tashlash
-                zeroline=True, 
-                zerolinecolor='black', 
-                zerolinewidth=2,
-                dtick=1, 
-                range=[-1, limit], 
-                ticks="outside", 
-                ticklen=10, 
-                tickcolor="black", 
-                tickfont=dict(size=14)
-            ),
-            legend=dict(x=0.5, y=-0.15, orientation="h", xanchor="center", bordercolor="Black", borderwidth=1),
+            legend=dict(x=0, y=1.1, orientation="h", bordercolor="Black", borderwidth=1), 
             height=800
         )
-
-        # O'qlar uchiga strelka va nom qo'shish
-        fig.add_annotation(x=limit, y=0, ax=-20, ay=0, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
-        fig.add_annotation(x=limit, y=-0.5, text="<b>x₁</b>", showarrow=False, font=dict(size=18))
-        fig.add_annotation(x=0, y=limit, ax=0, ay=20, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
-        fig.add_annotation(x=-0.5, y=limit, text="<b>x₂</b>", showarrow=False, font=dict(size=18))
-
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown(f"### {t_analysis}")
