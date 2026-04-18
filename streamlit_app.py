@@ -125,7 +125,6 @@ if solve_btn:
     res = linprog(coeffs, A_ub=A_ub or None, b_ub=b_ub or None, A_eq=A_eq or None, b_eq=b_eq or None, bounds=(None, None), method='highs')
     
     fig = go.Figure()
-    # Siz xohlagan diapazon
     limit = 15
     x_range = np.linspace(-limit, limit, 1000)
 
@@ -175,39 +174,27 @@ if solve_btn:
         fig.add_annotation(x=opt_x + 1.5, y=opt_y + (c_main2/c_main1 if c_main1 != 0 else 1.5), ax=opt_x, ay=opt_y, xref="x", yref="y", axref="x", ayref="y", text="VZ", showarrow=True, arrowhead=3, arrowcolor="red", font=dict(color="red", size=14))
         fig.add_trace(go.Scatter(x=[opt_x], y=[opt_y], mode='markers+text', text=[f"Оптимум ({opt_x:.2f}; {opt_y:.2f})"], textposition="top right", marker=dict(color='gold', size=18, symbol='star', line=dict(color='black', width=1)), name="Оптимум"))
 
-        # --- GRAFIKNI OQ FON VA SONLAR BILAN SOZLASH (O'ZGARTIRILDI) ---
+        # --- GRAFIKNI SOZLASH (ASOSIY O'ZGARISH) ---
         fig.update_layout(
             plot_bgcolor='white',
             paper_bgcolor='white',
             xaxis=dict(
-                showgrid=False,      # Setkani o'chirish
-                zeroline=True, 
-                zerolinecolor='black', 
-                zerolinewidth=2,
-                dtick=2, 
-                range=[-limit, limit],
-                ticks="outside",     # Sonlar chizig'i rasmdagidek bo'lishi uchun
-                tickcolor="black"
+                showgrid=False, zeroline=True, zerolinecolor='black', zerolinewidth=2,
+                dtick=1, range=[-1, limit], ticks="outside", ticklen=10, tickcolor="black", tickfont=dict(size=14)
             ),
             yaxis=dict(
-                showgrid=False,      # Setkani o'chirish
-                zeroline=True, 
-                zerolinecolor='black', 
-                zerolinewidth=2,
-                dtick=2, 
-                range=[-limit, limit],
-                ticks="outside",
-                tickcolor="black"
+                showgrid=False, zeroline=True, zerolinecolor='black', zerolinewidth=2,
+                dtick=1, range=[-1, limit], ticks="outside", ticklen=10, tickcolor="black", tickfont=dict(size=14)
             ),
-            legend=dict(x=0, y=1.1, orientation="h", bordercolor="Black", borderwidth=1),
+            legend=dict(x=0.5, y=-0.15, orientation="h", xanchor="center", bordercolor="Black", borderwidth=1),
             height=800
         )
 
-        # X va Y o'qlariga uchli strelkalar va nomlar qo'shish
-        fig.add_trace(go.Scatter(x=[limit, limit-0.4, limit, limit-0.4], y=[0, 0.3, 0, -0.3], mode='lines', line=dict(color='black', width=2), showlegend=False))
-        fig.add_trace(go.Scatter(x=[0.3, 0, -0.3, 0], y=[limit-0.4, limit, limit-0.4, limit], mode='lines', line=dict(color='black', width=2), showlegend=False))
-        fig.add_annotation(x=limit, y=0.8, text="<b>X</b>", showarrow=False, font=dict(size=16))
-        fig.add_annotation(x=0.8, y=limit, text="<b>Y</b>", showarrow=False, font=dict(size=16))
+        # Strelkalarni aynan o'q uchiga qo'shish
+        fig.add_annotation(x=limit, y=0, ax=-20, ay=0, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
+        fig.add_annotation(x=limit, y=-0.5, text="<b>x₁</b>", showarrow=False, font=dict(size=18))
+        fig.add_annotation(x=0, y=limit, ax=0, ay=20, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
+        fig.add_annotation(x=-0.5, y=limit, text="<b>x₂</b>", showarrow=False, font=dict(size=18))
 
         st.plotly_chart(fig, use_container_width=True)
 
