@@ -125,8 +125,7 @@ if solve_btn:
     res = linprog(coeffs, A_ub=A_ub or None, b_ub=b_ub or None, A_eq=A_eq or None, b_eq=b_eq or None, bounds=(None, None), method='highs')
     
     fig = go.Figure()
-    # Grafik chegarasini aniqlash (o'qlar uzunligi uchun)
-    graph_limit = 12 
+    graph_limit = 10 
     x_range = np.linspace(-2, graph_limit, 1000)
 
     # ODR chizish
@@ -155,122 +154,88 @@ if solve_btn:
         fig.add_trace(go.Scatter(x=pts[:,0], y=pts[:,1], fill="toself", fillcolor='rgba(0, 100, 255, 0.2)', line=dict(color='rgba(255,255,255,0)'), name="ОДР"))
         fig.add_trace(go.Scatter(x=pts[:,0], y=pts[:,1], mode='markers', marker=dict(color='red', size=8), name="Угловые точки"))
 
-    # Cheklov chiziqlarini chizish
     for i, c in enumerate(st.session_state.constraints):
         if abs(c['b']) > 1e-7:
             y_vals = (c['c'] - c['a'] * x_range) / c['b']
-            fig.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', name=f"L{i+1}", line=dict(width=1)))
+            fig.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', name=f"L{i+1}", line=dict(width=1.5)))
 
     if res.success:
         opt_x, opt_y = res.x
         
-        # --- GRAFIK KO'RINISHINI SOZLASH (ASOSIY O'ZGARISHLAR) ---
+        # --- GRAFIKNI RASMGA MOSLASH ---
         fig.update_layout(
-            # Oq fon va setkani o'chirish
             plot_bgcolor='white',
             paper_bgcolor='white',
-            
             xaxis=dict(
-                showgrid=False,      # Setkani o'chirish
-                zeroline=True,       # Nol chizig'ini yoqish
-                zerolinecolor='black', # Nol chizig'i rangi
-                zerolinewidth=2,     # Nol chizig'i qalinligi
-                showticklabels=True, # Raqamlarni ko'rsatish
-                dtick=1,             # Har bir birlikda raqam
-                range=[-1, graph_limit], # Ko'rinish oraliqlari
-                ticks="outside",     # Chiziqchalar tashqariga
-                tickcolor='black'
+                showgrid=False,
+                zeroline=True,
+                zerolinecolor='black',
+                zerolinewidth=2.5,
+                showline=False,      # Asosiy o'qni nol chizig'i bajargani uchun o'chirildi
+                tickmode='linear',
+                tick0=0,
+                dtick=1,             # Raqamlar 1, 2, 3...
+                range=[-1, graph_limit],
+                ticks="outside",     # Chiziqchalar o'qdan tashqariga (rasmdagidek)
+                ticklen=8,           # Chiziqcha uzunligi
+                tickwidth=2,
+                tickcolor='black',
+                tickfont=dict(size=14, color='black')
             ),
             yaxis=dict(
-                showgrid=False,      # Setkani o'chirish
-                zeroline=True,       # Nol chizig'ini yoqish
-                zerolinecolor='black', # Nol chizig'i rangi
-                zerolinewidth=2,     # Nol chizig'i qalinligi
-                showticklabels=True, # Raqamlarni ko'rsatish
-                dtick=1,             # Har bir birlikda raqam
-                range=[-1, graph_limit], # Ko'rinish oraliqlari
+                showgrid=False,
+                zeroline=True,
+                zerolinecolor='black',
+                zerolinewidth=2.5,
+                showline=False,
+                tickmode='linear',
+                tick0=0,
+                dtick=1,
+                range=[-1, graph_limit],
                 ticks="outside",
-                tickcolor='black'
+                ticklen=8,
+                tickwidth=2,
+                tickcolor='black',
+                tickfont=dict(size=14, color='black')
             ),
-            legend=dict(x=0.5, y=-0.1, orientation="h", xanchor="center"),
-            height=800,
-            margin=dict(l=20, r=20, t=20, b=20) # Chetki bo'shliqlar
+            showlegend=True,
+            legend=dict(x=0.5, y=-0.15, orientation="h", xanchor="center"),
+            height=800
         )
 
-        # --- O'QLARGA UCHLI STRELKALAR VA X, Y BELGILARINI QO'SHISH ---
-        # X o'qi uchun strelka
+        # X o'qi strelkasi va "x1" (rasmdagi nom)
         fig.add_annotation(
-            x=graph_limit - 0.2, y=0,    # Strelka uchi koordinatasi
-            ax=-40, ay=0,               # Strelka tanasining uzunligi va yo'nalishi relative piksellarda
-            xref="x", yref="y",
-            axref="pixel", ayref="pixel",
-            showarrow=True,
-            arrowhead=2,                # Strelka uchi turi (uchli)
-            arrowsize=1.5,              # Strelka uchi kattaligi
-            arrowwidth=2,               # Strelka chizig'i qalinligi
-            arrowcolor="black"
+            x=graph_limit-0.1, y=0, xref="x", yref="y",
+            showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="black",
+            ax=-40, ay=0, axref="pixel", ayref="pixel"
         )
-        # X belgisi
-        fig.add_annotation(
-            x=graph_limit - 0.5, y=0.5,
-            text="<b>X</b>",
-            showarrow=False,
-            font=dict(size=16, color="black")
-        )
+        fig.add_annotation(x=graph_limit-0.4, y=0.5, text="<b>x₁</b>", showarrow=False, font=dict(size=18))
 
-        # Y o'qi uchun strelka
+        # Y o'qi strelkasi va "x2"
         fig.add_annotation(
-            x=0, y=graph_limit - 0.2,    # Strelka uchi koordinatasi
-            ax=0, ay=40,                # Strelka tanasining uzunligi (pastga qarab ax=-40 edi, ayref pixel bo'lsa tepaga ay=40)
-            xref="x", yref="y",
-            axref="pixel", ayref="pixel",
-            showarrow=True,
-            arrowhead=2,                # Strelka uchi turi (uchli)
-            arrowsize=1.5,
-            arrowwidth=2,
-            arrowcolor="black"
+            x=0, y=graph_limit-0.1, xref="x", yref="y",
+            showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="black",
+            ax=0, ay=40, axref="pixel", ayref="pixel"
         )
-        # Y belgisi
-        fig.add_annotation(
-            x=0.5, y=graph_limit - 0.5,
-            text="<b>Y</b>",
-            showarrow=False,
-            font=dict(size=16, color="black")
-        )
+        fig.add_annotation(x=0.4, y=graph_limit-0.4, text="<b>x₂</b>", showarrow=False, font=dict(size=18))
 
-        # Optimal nuqtani belgilash
-        fig.add_trace(go.Scatter(x=[opt_x], y=[opt_y], mode='markers+text', text=[f"Opt ({opt_x:.2f}; {opt_y:.2f})"], textposition="top right", marker=dict(color='gold', size=18, symbol='star', line=dict(color='black', width=1)), name="Оптимум"))
+        # Optimal nuqta
+        fig.add_trace(go.Scatter(x=[opt_x], y=[opt_y], mode='markers+text', text=[f"Opt"], textposition="top center", marker=dict(color='gold', size=15, symbol='star'), name="Оптимум"))
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- TAHLIL JADVALI ---
+        # --- TAHLIL ---
         st.markdown(f"### {t_analysis}")
-        shadow_prices = res.get('ineqlin', {}).get('marginals', np.zeros(len(A_ub))) if A_ub else []
         analysis_data = []
         for i, c in enumerate(st.session_state.constraints):
             val_at_opt = c['a'] * opt_x + c['b'] * opt_y
             slack = abs(c['c'] - val_at_opt)
-            s_price = abs(shadow_prices[i]) if slack < 1e-5 and i < len(shadow_prices) else 0
-            status = "Активно" if slack < 1e-5 else "Запас"
             analysis_data.append({
                 "№": f"L{i+1}", 
                 "Уравнение": f"{c['a']}x1 + {c['b']}x2 {c['op']} {c['c']}", 
                 "Остаток": round(slack, 4), 
-                "Статус": status,
-                "Shadow Price": round(s_price, 4)
+                "Статус": "Активно" if slack < 1e-5 else "Запас"
             })
         st.table(pd.DataFrame(analysis_data))
 
-        st.session_state.history.insert(0, {'time': datetime.datetime.now().strftime("%H:%M:%S"), 'c1': c_main1, 'c2': c_main2, 'constraints_text': [f"{c['a']}x1 + ({c['b']})x2 {c['op']} {c['c']}" for c in st.session_state.constraints], 'x': opt_x, 'y': opt_y, 'z': c_main1 * opt_x + c_main2 * opt_y, 'type': obj_type})
-        st.success(f"### {('Результат' if st.session_state.lang == 'Русский' else 'Natija')}: X = {opt_x:.2f}, Y = {opt_y:.2f}, Z = {c_main1 * opt_x + c_main2 * opt_y:.2f}")
-    else:
-        st.error("Yechim topilmadi.")
-
-# --- TARIX ---
-if st.session_state.history:
-    st.markdown("---")
-    st.header(t_hist)
-    pdf_file = create_pdf(st.session_state.history)
-    st.download_button(t_pdf, data=pdf_file, file_name="lp_report.pdf", mime="application/pdf")
-    for h in st.session_state.history:
-        st.info(f"🕒 `{h['time']}` | **Z: {h['z']:.2f}** | X: {h['x']:.2f}, Y: {h['y']:.2f}")
+        st.success(f"### Natija: X₁ = {opt_x:.2f}, X₂ = {opt_y:.2f}, Z = {c_main1 * opt_x + c_main2 * opt_y:.2f}")
