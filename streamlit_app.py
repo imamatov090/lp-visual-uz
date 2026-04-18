@@ -125,8 +125,11 @@ if solve_btn:
     res = linprog(coeffs, A_ub=A_ub or None, b_ub=b_ub or None, A_eq=A_eq or None, b_eq=b_eq or None, bounds=(None, None), method='highs')
     
     fig = go.Figure()
-    x_range = np.linspace(-5, 15, 1000)
+    # Grafik chegarasini aniqlash (o'qlar uzunligi uchun)
+    graph_limit = 12 
+    x_range = np.linspace(-2, graph_limit, 1000)
 
+    # ODR chizish
     corner_points = []
     lines = st.session_state.constraints
     for i in range(len(lines)):
@@ -152,34 +155,90 @@ if solve_btn:
         fig.add_trace(go.Scatter(x=pts[:,0], y=pts[:,1], fill="toself", fillcolor='rgba(0, 100, 255, 0.2)', line=dict(color='rgba(255,255,255,0)'), name="ОДР"))
         fig.add_trace(go.Scatter(x=pts[:,0], y=pts[:,1], mode='markers', marker=dict(color='red', size=8), name="Угловые точки"))
 
+    # Cheklov chiziqlarini chizish
     for i, c in enumerate(st.session_state.constraints):
         if abs(c['b']) > 1e-7:
             y_vals = (c['c'] - c['a'] * x_range) / c['b']
-            fig.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', name=f"L{i+1}: {c['a']}x1 + {c['b']}x2 {c['op']} {c['c']}"))
+            fig.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', name=f"L{i+1}", line=dict(width=1)))
 
     if res.success:
         opt_x, opt_y = res.x
-        opt_res = c_main1 * opt_x + c_main2 * opt_y
         
-        # Grafikni rasmga o'xshatib sozlash
+        # --- GRAFIK KO'RINISHINI SOZLASH (ASOSIY O'ZGARISHLAR) ---
         fig.update_layout(
+            # Oq fon va setkani o'chirish
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            
             xaxis=dict(
-                showgrid=True, gridcolor='LightGrey', gridwidth=0.5, dtick=1, 
-                range=[-1, 10], zeroline=True, zerolinecolor='black', zerolinewidth=2, title="x1"
+                showgrid=False,      # Setkani o'chirish
+                zeroline=True,       # Nol chizig'ini yoqish
+                zerolinecolor='black', # Nol chizig'i rangi
+                zerolinewidth=2,     # Nol chizig'i qalinligi
+                showticklabels=True, # Raqamlarni ko'rsatish
+                dtick=1,             # Har bir birlikda raqam
+                range=[-1, graph_limit], # Ko'rinish oraliqlari
+                ticks="outside",     # Chiziqchalar tashqariga
+                tickcolor='black'
             ),
             yaxis=dict(
-                showgrid=True, gridcolor='LightGrey', gridwidth=0.5, dtick=1, 
-                range=[-1, 10], zeroline=True, zerolinecolor='black', zerolinewidth=2, title="x2"
+                showgrid=False,      # Setkani o'chirish
+                zeroline=True,       # Nol chizig'ini yoqish
+                zerolinecolor='black', # Nol chizig'i rangi
+                zerolinewidth=2,     # Nol chizig'i qalinligi
+                showticklabels=True, # Raqamlarni ko'rsatish
+                dtick=1,             # Har bir birlikda raqam
+                range=[-1, graph_limit], # Ko'rinish oraliqlari
+                ticks="outside",
+                tickcolor='black'
             ),
-            plot_bgcolor='white',
-            legend=dict(x=0, y=1.1, orientation="h", bordercolor="Black", borderwidth=1),
-            height=800
+            legend=dict(x=0.5, y=-0.1, orientation="h", xanchor="center"),
+            height=800,
+            margin=dict(l=20, r=20, t=20, b=20) # Chetki bo'shliqlar
         )
 
-        # O'qlarga strelkalar qo'shish
-        fig.add_annotation(x=9.8, y=0, ax=0, ay=0, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
-        fig.add_annotation(x=0, y=9.8, ax=0, ay=0, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
+        # --- O'QLARGA UCHLI STRELKALAR VA X, Y BELGILARINI QO'SHISH ---
+        # X o'qi uchun strelka
+        fig.add_annotation(
+            x=graph_limit - 0.2, y=0,    # Strelka uchi koordinatasi
+            ax=-40, ay=0,               # Strelka tanasining uzunligi va yo'nalishi relative piksellarda
+            xref="x", yref="y",
+            axref="pixel", ayref="pixel",
+            showarrow=True,
+            arrowhead=2,                # Strelka uchi turi (uchli)
+            arrowsize=1.5,              # Strelka uchi kattaligi
+            arrowwidth=2,               # Strelka chizig'i qalinligi
+            arrowcolor="black"
+        )
+        # X belgisi
+        fig.add_annotation(
+            x=graph_limit - 0.5, y=0.5,
+            text="<b>X</b>",
+            showarrow=False,
+            font=dict(size=16, color="black")
+        )
 
+        # Y o'qi uchun strelka
+        fig.add_annotation(
+            x=0, y=graph_limit - 0.2,    # Strelka uchi koordinatasi
+            ax=0, ay=40,                # Strelka tanasining uzunligi (pastga qarab ax=-40 edi, ayref pixel bo'lsa tepaga ay=40)
+            xref="x", yref="y",
+            axref="pixel", ayref="pixel",
+            showarrow=True,
+            arrowhead=2,                # Strelka uchi turi (uchli)
+            arrowsize=1.5,
+            arrowwidth=2,
+            arrowcolor="black"
+        )
+        # Y belgisi
+        fig.add_annotation(
+            x=0.5, y=graph_limit - 0.5,
+            text="<b>Y</b>",
+            showarrow=False,
+            font=dict(size=16, color="black")
+        )
+
+        # Optimal nuqtani belgilash
         fig.add_trace(go.Scatter(x=[opt_x], y=[opt_y], mode='markers+text', text=[f"Opt ({opt_x:.2f}; {opt_y:.2f})"], textposition="top right", marker=dict(color='gold', size=18, symbol='star', line=dict(color='black', width=1)), name="Оптимум"))
 
         st.plotly_chart(fig, use_container_width=True)
@@ -202,8 +261,8 @@ if solve_btn:
             })
         st.table(pd.DataFrame(analysis_data))
 
-        st.session_state.history.insert(0, {'time': datetime.datetime.now().strftime("%H:%M:%S"), 'c1': c_main1, 'c2': c_main2, 'constraints_text': [f"{c['a']}x1 + ({c['b']})x2 {c['op']} {c['c']}" for c in st.session_state.constraints], 'x': opt_x, 'y': opt_y, 'z': opt_res, 'type': obj_type})
-        st.success(f"### {('Результат' if st.session_state.lang == 'Русский' else 'Natija')}: X = {opt_x:.2f}, Y = {opt_y:.2f}, Z = {opt_res:.2f}")
+        st.session_state.history.insert(0, {'time': datetime.datetime.now().strftime("%H:%M:%S"), 'c1': c_main1, 'c2': c_main2, 'constraints_text': [f"{c['a']}x1 + ({c['b']})x2 {c['op']} {c['c']}" for c in st.session_state.constraints], 'x': opt_x, 'y': opt_y, 'z': c_main1 * opt_x + c_main2 * opt_y, 'type': obj_type})
+        st.success(f"### {('Результат' if st.session_state.lang == 'Русский' else 'Natija')}: X = {opt_x:.2f}, Y = {opt_y:.2f}, Z = {c_main1 * opt_x + c_main2 * opt_y:.2f}")
     else:
         st.error("Yechim topilmadi.")
 
