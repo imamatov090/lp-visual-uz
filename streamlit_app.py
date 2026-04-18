@@ -94,7 +94,7 @@ with st.sidebar:
         with cl1: a_val = st.number_input(f"a{i}", value=float(cons['a']), key=f"inp_a{i}", label_visibility="collapsed")
         with cl_x: st.markdown("<div style='margin-top: 5px;'><sup>*x</sup> +</div>", unsafe_allow_html=True)
         with cl2: b_val = st.number_input(f"b{i}", value=float(cons['b']), key=f"inp_b{i}", label_visibility="collapsed")
-        with cl_y: st.markdown("<div style='margin-top: 5px;'><sup>*y</sup></div>", unsafe_allow_html=True)
+        with col_y: st.markdown("<div style='margin-top: 5px;'><sup>*y</sup></div>", unsafe_allow_html=True)
         with cl3: op_val = st.selectbox(f"op{i}", ("≤", "≥", "="), index=("≤", "≥", "=").index(cons['op']), key=f"inp_op{i}", label_visibility="collapsed")
         with cl4: c_val = st.number_input(f"c{i}", value=float(cons['c']), key=f"inp_c{i}", label_visibility="collapsed")
         with cl5: 
@@ -154,40 +154,44 @@ if solve_btn:
         fig.add_trace(go.Scatter(x=pts[:,0], y=pts[:,1], fill="toself", fillcolor='rgba(0, 100, 255, 0.2)', line=dict(color='rgba(255,255,255,0)'), name="ОДР"))
         fig.add_trace(go.Scatter(x=pts[:,0], y=pts[:,1], mode='markers', marker=dict(color='red', size=8), name="Угловые точки"))
 
+    # Cheklov chiziqlarini chizish
     for i, c in enumerate(st.session_state.constraints):
         if abs(c['b']) > 1e-7:
             y_vals = (c['c'] - c['a'] * x_range) / c['b']
-            fig.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', name=f"L{i+1}", line=dict(width=1.5)))
+            fig.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', name=f"L{i+1}", line=dict(width=1)))
 
     if res.success:
         opt_x, opt_y = res.x
         
-        # --- GRAFIKNI RASMGA MOSLASH ---
+        # --- GRAFIK KO'RINISHINI O'ZGARTIRISH (ASOSIY QISM) ---
         fig.update_layout(
             plot_bgcolor='white',
             paper_bgcolor='white',
+            # Standart o'qlarni (markazda kesishadigan) o'chirish
             xaxis=dict(
                 showgrid=False,
-                zeroline=True,
-                zerolinecolor='black',
-                zerolinewidth=2.5,
-                showline=False,      # Asosiy o'qni nol chizig'i bajargani uchun o'chirildi
+                zeroline=False,     # Nol chizig'ini o'chirish
+                showline=True,      # O'q chizig'ini ko'rsatish (grafik chetida)
+                linecolor='black',
+                linewidth=2,
+                showticklabels=True,
                 tickmode='linear',
                 tick0=0,
-                dtick=1,             # Raqamlar 1, 2, 3...
+                dtick=1,
                 range=[-1, graph_limit],
-                ticks="outside",     # Chiziqchalar o'qdan tashqariga (rasmdagidek)
-                ticklen=8,           # Chiziqcha uzunligi
+                ticks="outside",
+                ticklen=8,
                 tickwidth=2,
                 tickcolor='black',
                 tickfont=dict(size=14, color='black')
             ),
             yaxis=dict(
                 showgrid=False,
-                zeroline=True,
-                zerolinecolor='black',
-                zerolinewidth=2.5,
-                showline=False,
+                zeroline=False,
+                showline=True,
+                linecolor='black',
+                linewidth=2,
+                showticklabels=True,
                 tickmode='linear',
                 tick0=0,
                 dtick=1,
@@ -203,7 +207,8 @@ if solve_btn:
             height=800
         )
 
-        # X o'qi strelkasi va "x1" (rasmdagi nom)
+        # --- O'QLARGA UCHLI STRELKALAR VA NOM QO'SHISH ---
+        # X o'qi strelkasi va nomi (x₁)
         fig.add_annotation(
             x=graph_limit-0.1, y=0, xref="x", yref="y",
             showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="black",
@@ -211,7 +216,7 @@ if solve_btn:
         )
         fig.add_annotation(x=graph_limit-0.4, y=0.5, text="<b>x₁</b>", showarrow=False, font=dict(size=18))
 
-        # Y o'qi strelkasi va "x2"
+        # Y o'qi strelkasi va nomi (x₂)
         fig.add_annotation(
             x=0, y=graph_limit-0.1, xref="x", yref="y",
             showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="black",
@@ -219,12 +224,12 @@ if solve_btn:
         )
         fig.add_annotation(x=0.4, y=graph_limit-0.4, text="<b>x₂</b>", showarrow=False, font=dict(size=18))
 
-        # Optimal nuqta
+        # Optimal nuqtani belgilash
         fig.add_trace(go.Scatter(x=[opt_x], y=[opt_y], mode='markers+text', text=[f"Opt"], textposition="top center", marker=dict(color='gold', size=15, symbol='star'), name="Оптимум"))
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- TAHLIL ---
+        # --- TAHLIL JADVALI ---
         st.markdown(f"### {t_analysis}")
         analysis_data = []
         for i, c in enumerate(st.session_state.constraints):
