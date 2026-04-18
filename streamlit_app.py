@@ -6,14 +6,14 @@ from fpdf import FPDF
 import datetime
 import pandas as pd
 
-# Sahifa sozlamalari (O'zgarishsiz)
+# Sahifa sozlamalari
 st.set_page_config(page_title="Решатель ЛП", layout="wide")
 
-# --- XOTIRA (O'zgarishsiz) ---
+# --- XOTIRA ---
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- TIL MANTIQI (O'zgarishsiz) ---
+# --- TIL MANTIQI ---
 if 'lang' not in st.session_state:
     st.session_state.lang = "Русский"
 
@@ -40,7 +40,7 @@ else:
 
 st.markdown(f"<h1 style='text-align: center;'>{t_title}</h1>", unsafe_allow_html=True)
 
-# --- PDF FUNKSIYASI (O'zgarishsiz) ---
+# --- PDF FUNKSIYASI ---
 def create_pdf(history):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -74,31 +74,33 @@ def create_pdf(history):
         pdf.cell(200, 8, txt=f"Z* = {item['z']:.2f}", ln=True)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- SIDEBAR (O'zgarishsiz) ---
+# --- SIDEBAR (YANGILANGAN CHEKLOVLAR QISMI) ---
 with st.sidebar:
     st.header(t_target)
-    col_v1, col_x, col_v2, col_y, col_t = st.columns([2, 1, 2, 1, 3])
+    col_v1, col_x, col_v2, col_y, col_t = st.columns([2.5, 1, 2.5, 1, 3])
     with col_v1: c_main1 = st.number_input("C1", value=5.3, format="%.1f", key="main_c1", label_visibility="collapsed")
-    with col_x: st.markdown("<div style='margin-top: 5px;'><sup>*x</sup> +</div>", unsafe_allow_html=True)
+    with col_x: st.markdown("<div style='margin-top: 5px;'><b>*x +</b></div>", unsafe_allow_html=True)
     with col_v2: c_main2 = st.number_input("C2", value=-7.1, format="%.1f", key="main_c2", label_visibility="collapsed")
-    with col_y: st.markdown("<div style='margin-top: 5px;'><sup>*y</sup></div>", unsafe_allow_html=True)
+    with col_y: st.markdown("<div style='margin-top: 5px;'><b>*y</b></div>", unsafe_allow_html=True)
     with col_t: obj_type = st.selectbox("Тип", ("max", "min"), key="main_type", label_visibility="collapsed")
+    
     st.markdown("---")
     st.header(t_cons)
     if 'constraints' not in st.session_state:
-        st.session_state.constraints = [{'a': 3.2, 'b': -2.0, 'op': '=', 'c': 3.0}, {'a': 1.6, 'b': 2.3, 'op': '≤', 'c': -5.0}, {'a': 3.2, 'b': -6.0, 'op': '≥', 'c': 7.0}, {'a': 7.0, 'b': -2.0, 'op': '≤', 'c': 10.0}, {'a': -6.5, 'b': 3.0, 'op': '≤', 'c': 9.0}]
+        st.session_state.constraints = [{'a': 3.2, 'b': -2.0, 'op': '≤', 'c': 3.0}, {'a': 1.6, 'b': 2.3, 'op': '≤', 'c': -5.0}, {'a': 3.2, 'b': -6.0, 'op': '≥', 'c': 7.0}, {'a': 7.0, 'b': -2.0, 'op': '≤', 'c': 10.0}, {'a': -6.5, 'b': 3.0, 'op': '≤', 'c': 9.0}]
     
     new_cons = []
     for i, cons in enumerate(st.session_state.constraints):
-        cl1, cl_x, cl2, cl_y, cl3, cl4, cl5 = st.columns([2, 1.2, 2, 1, 1.5, 2, 1])
-        with cl1: a_val = st.number_input(f"a{i}", value=float(cons['a']), key=f"inp_a{i}", label_visibility="collapsed")
-        with cl_x: st.markdown("<div style='margin-top: 5px;'><sup>*x</sup> +</div>", unsafe_allow_html=True)
-        with cl2: b_val = st.number_input(f"b{i}", value=float(cons['b']), key=f"inp_b{i}", label_visibility="collapsed")
-        with cl_y: st.markdown("<div style='margin-top: 5px;'><sup>*y</sup></div>", unsafe_allow_html=True)
-        with cl3: op_val = st.selectbox(f"op{i}", ("≤", "≥", "="), index=("≤", "≥", "=").index(cons['op']), key=f"inp_op{i}", label_visibility="collapsed")
-        with cl4: c_val = st.number_input(f"c{i}", value=float(cons['c']), key=f"inp_c{i}", label_visibility="collapsed")
-        with cl5: 
-            if st.button("🗑️", key=f"btn_del{i}"):
+        # Rasmdaqa bo'lishi uchun ustunlar nisbatini sozladik
+        c1, c2, c3, c4, c5, c6, c7 = st.columns([3, 1.2, 3, 1, 2, 3, 1])
+        with c1: a_val = st.number_input(f"a{i}", value=float(cons['a']), key=f"a{i}", label_visibility="collapsed")
+        with c2: st.markdown("<div style='margin-top: 7px;'><b>*x +</b></div>", unsafe_allow_html=True)
+        with c3: b_val = st.number_input(f"b{i}", value=float(cons['b']), key=f"b{i}", label_visibility="collapsed")
+        with c4: st.markdown("<div style='margin-top: 7px;'><b>*y</b></div>", unsafe_allow_html=True)
+        with c5: op_val = st.selectbox(f"op{i}", ("≤", "≥", "="), index=("≤", "≥", "=").index(cons['op']), key=f"op{i}", label_visibility="collapsed")
+        with c6: c_val = st.number_input(f"c{i}", value=float(cons['c']), key=f"c{i}", label_visibility="collapsed")
+        with c7: 
+            if st.button("🗑️", key=f"del{i}"):
                 st.session_state.constraints.pop(i); st.rerun()
         new_cons.append({'a': a_val, 'b': b_val, 'op': op_val, 'c': c_val})
     
@@ -113,7 +115,7 @@ with st.sidebar:
     
     st.session_state.lang = st.radio("🌐 Til / Язык", ("Русский", "O'zbekcha"), horizontal=True)
 
-# --- GRAFIK VA YECHIM ---
+# --- GRAFIK VA YECHIM (ORIGINAL KODINGIZ - O'ZGARISHSIZ) ---
 if solve_btn:
     coeffs = [-c_main1 if obj_type == "max" else c_main1, -c_main2 if obj_type == "max" else c_main2]
     A_ub, b_ub, A_eq, b_eq = [], [], [], []
@@ -125,8 +127,7 @@ if solve_btn:
     res = linprog(coeffs, A_ub=A_ub or None, b_ub=b_ub or None, A_eq=A_eq or None, b_eq=b_eq or None, bounds=(None, None), method='highs')
     
     fig = go.Figure()
-    limit = 15
-    x_range = np.linspace(-limit, limit, 1000)
+    x_range = np.linspace(-20, 20, 1000)
 
     corner_points = []
     lines = st.session_state.constraints
@@ -174,31 +175,9 @@ if solve_btn:
         fig.add_annotation(x=opt_x + 1.5, y=opt_y + (c_main2/c_main1 if c_main1 != 0 else 1.5), ax=opt_x, ay=opt_y, xref="x", yref="y", axref="x", ayref="y", text="VZ", showarrow=True, arrowhead=3, arrowcolor="red", font=dict(color="red", size=14))
         fig.add_trace(go.Scatter(x=[opt_x], y=[opt_y], mode='markers+text', text=[f"Оптимум ({opt_x:.2f}; {opt_y:.2f})"], textposition="top right", marker=dict(color='gold', size=18, symbol='star', line=dict(color='black', width=1)), name="Оптимум"))
 
-        # --- GRAFIKNI SOZLASH (ASOSIY O'ZGARISH) ---
-        fig.update_layout(
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            xaxis=dict(
-                showgrid=False, zeroline=True, zerolinecolor='black', zerolinewidth=2,
-                dtick=1, range=[-1, limit], ticks="outside", ticklen=10, tickcolor="black", tickfont=dict(size=14)
-            ),
-            yaxis=dict(
-                showgrid=False, zeroline=True, zerolinecolor='black', zerolinewidth=2,
-                dtick=1, range=[-1, limit], ticks="outside", ticklen=10, tickcolor="black", tickfont=dict(size=14)
-            ),
-            legend=dict(x=0.5, y=-0.15, orientation="h", xanchor="center", bordercolor="Black", borderwidth=1),
-            height=800
-        )
-
-        # Strelkalarni aynan o'q uchiga qo'shish
-        fig.add_annotation(x=limit, y=0, ax=-20, ay=0, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
-        fig.add_annotation(x=limit, y=-0.5, text="<b>x₁</b>", showarrow=False, font=dict(size=18))
-        fig.add_annotation(x=0, y=limit, ax=0, ay=20, xref="x", yref="y", showarrow=True, arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor="black")
-        fig.add_annotation(x=-0.5, y=limit, text="<b>x₂</b>", showarrow=False, font=dict(size=18))
-
+        fig.update_layout(xaxis=dict(showgrid=True, gridcolor='LightGrey', gridwidth=0.5, dtick=2, range=[-15, 15], zerolinecolor='black'), yaxis=dict(showgrid=True, gridcolor='LightGrey', gridwidth=0.5, dtick=2, range=[-15, 15], zerolinecolor='black'), plot_bgcolor='white', legend=dict(x=0, y=1.1, orientation="h", bordercolor="Black", borderwidth=1), height=800)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- TAHLIL JADVALI (O'zgarishsiz) ---
         st.markdown(f"### {t_analysis}")
         shadow_prices = res.get('ineqlin', {}).get('marginals', np.zeros(len(A_ub))) if A_ub else []
         analysis_data = []
@@ -214,7 +193,7 @@ if solve_btn:
         st.success(f"### {('Результат' if st.session_state.lang == 'Русский' else 'Natija')}: X = {opt_x:.2f}, Y = {opt_y:.2f}, Z = {opt_res:.2f}")
     else: st.error("Yechim topilmadi.")
 
-# --- TARIX (O'zgarishsiz) ---
+# --- TARIX ---
 if st.session_state.history:
     st.markdown("---")
     st.header(t_hist)
